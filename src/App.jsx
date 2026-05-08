@@ -12,7 +12,7 @@ const themes = {
   black: { name: "שחור", app: "bg-[#050505] text-zinc-100", card: "bg-zinc-950 border-zinc-800", soft: "bg-zinc-900", input: "bg-black border-zinc-700 text-zinc-100", muted: "text-zinc-400", strong: "text-white", head: "bg-black text-zinc-500", row: "border-zinc-800 hover:bg-zinc-900/70", navIdle: "bg-black text-zinc-300 hover:bg-zinc-900", accent: "bg-yellow-500 text-black", accentText: "text-yellow-400", border: "border-zinc-800" },
   gray: { name: "אפור", app: "bg-zinc-200 text-zinc-900", card: "bg-zinc-100 border-zinc-300", soft: "bg-zinc-200", input: "bg-white border-zinc-300 text-zinc-900", muted: "text-zinc-600", strong: "text-zinc-950", head: "bg-zinc-200 text-zinc-600", row: "border-zinc-300 hover:bg-zinc-200", navIdle: "bg-zinc-200 text-zinc-700 hover:bg-zinc-300", accent: "bg-zinc-800 text-white", accentText: "text-zinc-800", border: "border-zinc-300" },
   brown: { name: "חום", app: "bg-stone-950 text-stone-100", card: "bg-stone-900 border-amber-900/50", soft: "bg-stone-800", input: "bg-stone-950 border-amber-900/50 text-stone-100", muted: "text-stone-400", strong: "text-stone-50", head: "bg-stone-950 text-stone-400", row: "border-amber-900/30 hover:bg-stone-800/70", navIdle: "bg-stone-950 text-stone-300 hover:bg-stone-800", accent: "bg-amber-700 text-white", accentText: "text-amber-400", border: "border-amber-900/50" },
-  white: { name: "לבן", app: "bg-zinc-100 text-zinc-900", card: "bg-white border-zinc-300", soft: "bg-zinc-50", input: "bg-white border-zinc-300 text-zinc-900", muted: "text-zinc-600", strong: "text-zinc-950", head: "bg-zinc-50 text-zinc-500", row: "border-zinc-200 hover:bg-zinc-50", navIdle: "bg-zinc-100 text-zinc-700 hover:bg-zinc-200", accent: "bg-yellow-500 text-black", accentText: "text-yellow-700", border: "border-zinc-300" }
+  white: { name: "לבן", app: "bg-[#f4f6f8] text-slate-900", card: "bg-white border-slate-200", soft: "bg-slate-50", input: "bg-white border-slate-300 text-slate-900", muted: "text-slate-500", strong: "text-slate-950", head: "bg-slate-50 text-slate-500", row: "border-slate-200 hover:bg-slate-50", navIdle: "bg-white text-slate-700 hover:bg-slate-100 border border-slate-200", accent: "bg-slate-900 text-white", accentText: "text-slate-700", border: "border-slate-200" }
 };
 
 const playbook = [
@@ -293,9 +293,9 @@ export default function WatchListDashboard() {
 
   return (
     <div dir="rtl" className={`min-h-screen p-6 ${theme.app}`}>
-      <button onClick={() => setShowSidebar(true)} className="fixed bottom-6 left-6 z-40 rounded-full bg-white/80 px-4 py-2 text-sm font-black text-zinc-900 shadow-xl ring-1 ring-zinc-300 backdrop-blur hover:bg-white">⚙️ הגדרות</button>
+      <button onClick={() => setShowSidebar(true)} className="fixed bottom-6 left-6 z-40 rounded-full bg-slate-900 px-4 py-2 text-sm font-black text-white shadow-xl ring-1 ring-slate-300 hover:bg-slate-700">⚙️ הגדרות</button>
 
-      <div className="mx-auto max-w-7xl space-y-5">
+      <div className="mx-auto w-full max-w-[96vw] space-y-5">
         <header className={`rounded-2xl border p-5 shadow-lg ${theme.card}`}>
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
@@ -347,7 +347,7 @@ export default function WatchListDashboard() {
               <h2 className={`text-xl font-black ${theme.strong}`}>🔥 Priority Engine — Top Opportunities</h2>
               <span className={`text-sm ${theme.muted}`}>הכי חשוב עכשיו לפי Alert + Rating + AI + Setup</span>
             </div>
-            <div className="grid gap-3 lg:grid-cols-3">
+            <div className="grid gap-3 xl:grid-cols-2 2xl:grid-cols-3">
               {topPriorityRows.map(row => {
                 const p = priorityLabel(row.priority || 0);
                 return (
@@ -394,88 +394,66 @@ export default function WatchListDashboard() {
 
         {activePanel === "main" && (
           <section className={`overflow-hidden rounded-2xl border shadow-lg ${theme.card}`}>
-            <div className="overflow-x-auto"><table className="w-full min-w-[1450px] text-right text-sm"><thead className={`${theme.head} text-xs uppercase tracking-wider`}><tr><th className="p-3">Ticker</th><th className="p-3">Price</th><th className="p-3">1D%</th><th className="p-3">Priority</th><th className="p-3">Rating</th><th className="p-3">Alert Status</th><th className="p-3">Your Status</th><th className="p-3">AI</th><th className="p-3">Score</th><th className="p-3">Setup</th><th className="p-3">Structure</th><th className="p-3">Entry</th><th className="p-3">Invalidation</th><th className="p-3">Why</th><th className="p-3">Actions</th></tr></thead><tbody>{visibleRows.map(row => { const a = row.analysis; return <tr key={row.ticker} className={`border-t ${theme.row} ${row.alert.state === "NEAR" ? "bg-yellow-100 ring-2 ring-yellow-400" : row.isReadyToTrade ? "bg-emerald-100 ring-2 ring-emerald-500" : row.alert.triggered ? "ring-2 ring-emerald-400" : ""}`}><td className="p-3"><div className="flex items-center gap-2"><span title={row.alert.label} className={`h-3 w-3 rounded-full ${row.alert.dot || "bg-zinc-300"} ${row.alert.state === "NEAR" ? "animate-pulse scale-125" : ""}`} /><button onClick={() => openChart(row.ticker)} className={`font-black hover:underline ${theme.strong}`}>{row.ticker} ↗ {row.isReadyToTrade && <span className="ml-2 rounded-md bg-emerald-600 px-2 py-0.5 text-[10px] font-black text-white">READY TO TRADE</span>}</button></div></td><td className="p-3 font-bold">{safeNum(a.price)}</td><td className={`p-3 font-bold ${a.change1 >= 0 ? "text-emerald-600" : "text-red-600"}`}>{safeNum(a.change1, 1)}%</td><td className="p-3"><span className={`rounded-lg px-2 py-1 text-xs font-black ${priorityLabel(row.priority || 0).className}`}>{row.priority}</span></td><td className="p-3"><select value={row.rating || 0} onChange={e => updateRow(row.ticker, { rating: Number(e.target.value) })} className="rounded-lg border px-2 py-1 font-bold"><option value={0}>⭐</option><option value={1}>⭐ 1</option><option value={2}>⭐ 2</option><option value={3}>⭐ 3</option><option value={4}>⭐ 4</option><option value={5}>⭐ 5</option></select></td><td className="p-3"><span className={`rounded-lg border px-2 py-1 font-black ${row.alert.className} ${row.alert.state === "NEAR" ? "shadow-md" : ""}`}>{row.alert.label}</span></td><td className="p-3"><select value={row.userStatus || "WATCH"} onChange={e => updateRow(row.ticker, { userStatus: e.target.value })} className={`rounded-lg border px-2 py-1 font-bold ${statusClass(row.userStatus || "WATCH")}`}><option value="READY">READY</option><option value="WATCH">WATCH</option><option value="AVOID">AVOID</option></select></td><td className="p-3"><span className={`rounded-lg border px-2 py-1 font-black ${statusClass(a.aiStatus)}`}>{a.aiStatus}</span></td><td className="p-3"><div className="flex items-center gap-2"><div className="h-2 w-20 rounded-full bg-zinc-300"><div className="h-2 rounded-full bg-yellow-500" style={{ width: `${a.score}%` }} /></div><b>{a.score}</b></div></td><td className="p-3"><span className={`rounded-lg border px-3 py-1 font-black ${setupClass(a.setup)}`}>{a.setup}</span></td><td className={`p-3 ${theme.strong}`}>{a.structure}</td><td className="p-3 font-bold text-emerald-600">{a.entryZone}</td><td className="p-3 font-bold text-red-600">{a.invalidation}</td><td className={`max-w-[300px] p-3 ${theme.muted}`}>{a.why}</td><td className="p-3"><div className="flex gap-2"><Button onClick={() => setDrawerTicker(row.ticker)} className="border border-blue-300 text-blue-600">מגירה</Button><Button onClick={() => setConfirmAiModal({ open: true, ticker: row.ticker })} className="border border-emerald-300 text-emerald-600">אשר</Button><Button onClick={() => archiveTicker(row.ticker)} className="border border-yellow-300 text-yellow-600">ארכיון</Button><Button onClick={() => removeTicker(row.ticker)} className="border border-red-300 text-red-600">מחק</Button></div></td></tr>; })}</tbody></table></div>
+            <div className="overflow-x-auto"><table className="w-full min-w-[1180px] text-right text-xs xl:text-sm"><thead className={`${theme.head} text-xs uppercase tracking-wider`}><tr><th className="p-3">Ticker</th><th className="p-3">Price</th><th className="p-3">1D%</th><th className="p-3">Priority</th><th className="p-3">Rating</th><th className="p-3">Alert Status</th><th className="p-3">Your Status</th><th className="p-3">AI</th><th className="p-3">Score</th><th className="p-3">Setup</th><th className="p-3">Structure</th><th className="p-3">Entry</th><th className="p-3">Invalidation</th><th className="p-3">Why</th><th className="p-3">Actions</th></tr></thead><tbody>{visibleRows.map(row => { const a = row.analysis; return <tr key={row.ticker} className={`border-t ${theme.row} ${row.alert.state === "NEAR" ? "bg-yellow-100 ring-2 ring-yellow-400" : row.isReadyToTrade ? "bg-emerald-100 ring-2 ring-emerald-500" : row.alert.triggered ? "ring-2 ring-emerald-400" : ""}`}><td className="p-3"><div className="flex items-center gap-2"><span title={row.alert.label} className={`h-3 w-3 rounded-full ${row.alert.dot || "bg-zinc-300"} ${row.alert.state === "NEAR" ? "animate-pulse scale-125" : ""}`} /><button onClick={() => openChart(row.ticker)} className={`font-black hover:underline ${theme.strong}`}>{row.ticker} ↗ {row.isReadyToTrade && <span className="ml-2 rounded-md bg-emerald-600 px-2 py-0.5 text-[10px] font-black text-white">READY TO TRADE</span>}</button></div></td><td className="p-3 font-bold">{safeNum(a.price)}</td><td className={`p-3 font-bold ${a.change1 >= 0 ? "text-emerald-600" : "text-red-600"}`}>{safeNum(a.change1, 1)}%</td><td className="p-3"><span className={`rounded-lg px-2 py-1 text-xs font-black ${priorityLabel(row.priority || 0).className}`}>{row.priority}</span></td><td className="p-3"><select value={row.rating || 0} onChange={e => updateRow(row.ticker, { rating: Number(e.target.value) })} className="rounded-lg border px-2 py-1 font-bold"><option value={0}>⭐</option><option value={1}>⭐ 1</option><option value={2}>⭐ 2</option><option value={3}>⭐ 3</option><option value={4}>⭐ 4</option><option value={5}>⭐ 5</option></select></td><td className="p-3"><span className={`rounded-lg border px-2 py-1 font-black ${row.alert.className} ${row.alert.state === "NEAR" ? "shadow-md" : ""}`}>{row.alert.label}</span></td><td className="p-3"><select value={row.userStatus || "WATCH"} onChange={e => updateRow(row.ticker, { userStatus: e.target.value })} className={`rounded-lg border px-2 py-1 font-bold ${statusClass(row.userStatus || "WATCH")}`}><option value="READY">READY</option><option value="WATCH">WATCH</option><option value="AVOID">AVOID</option></select></td><td className="p-3"><span className={`rounded-lg border px-2 py-1 font-black ${statusClass(a.aiStatus)}`}>{a.aiStatus}</span></td><td className="p-3"><div className="flex items-center gap-2"><div className="h-2 w-20 rounded-full bg-zinc-300"><div className="h-2 rounded-full bg-yellow-500" style={{ width: `${a.score}%` }} /></div><b>{a.score}</b></div></td><td className="p-3"><span className={`rounded-lg border px-3 py-1 font-black ${setupClass(a.setup)}`}>{a.setup}</span></td><td className={`p-3 ${theme.strong}`}>{a.structure}</td><td className="p-3 font-bold text-emerald-600">{a.entryZone}</td><td className="p-3 font-bold text-red-600">{a.invalidation}</td><td className={`max-w-[300px] p-3 ${theme.muted}`}>{a.why}</td><td className="p-3"><div className="flex gap-2"><Button onClick={() => setDrawerTicker(row.ticker)} className="border border-blue-300 text-blue-600">מגירה</Button><Button onClick={() => setConfirmAiModal({ open: true, ticker: row.ticker })} className="border border-emerald-300 text-emerald-600">אשר</Button><Button onClick={() => archiveTicker(row.ticker)} className="border border-yellow-300 text-yellow-600">ארכיון</Button><Button onClick={() => removeTicker(row.ticker)} className="border border-red-300 text-red-600">מחק</Button></div></td></tr>; })}</tbody></table></div>
           </section>
         )}
 
         <div className={`rounded-xl border p-3 text-xs ${theme.card} ${theme.muted}`}>Smart Alert: אם המחיר עבר את היעד — השורה תעלה למעלה ותסומן. אם המחיר קרוב עד 3% — תקבל סימון קרוב.</div>
         {showSidebar && (
-          <section className={`rounded-3xl border p-5 shadow-2xl ${theme.card}`}>
-            <div className="mb-5 flex items-center justify-between">
-              <div>
-                <h3 className={`text-xl font-black ${theme.strong}`}>⚙️ הגדרות עיצוב</h3>
-                <p className={`mt-1 text-sm ${theme.muted}`}>שינוי כפתורים, צל, צורה ורקע.</p>
-              </div>
-              <button
-                onClick={() => setShowSidebar(false)}
-                className="rounded-full border border-zinc-300 bg-white px-4 py-2 text-sm font-black text-zinc-700 shadow-sm hover:bg-zinc-100"
-              >
-                סגור
-              </button>
-            </div>
-
-            <div className="grid gap-4 lg:grid-cols-4">
-              <div className="rounded-2xl border border-zinc-200 bg-white/70 p-3 shadow-sm">
-                <div className={`mb-2 text-xs font-black ${theme.muted}`}>גודל כפתורים</div>
-                <div className="grid grid-cols-3 gap-2">
-                  {[["sm", "קטן"], ["md", "רגיל"], ["lg", "גדול"]].map(([s, label]) => (
-                    <button
-                      key={s}
-                      onClick={() => setButtonSize(s)}
-                      className={`rounded-full px-3 py-2 text-xs font-black transition ${buttonSize === s ? "bg-zinc-900 text-white shadow-md" : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200"}`}
-                    >
-                      {label}
-                    </button>
-                  ))}
+          <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 p-4" onClick={() => setShowSidebar(false)}>
+            <section className={`w-full max-w-6xl rounded-3xl border p-5 shadow-2xl ${theme.card}`} onClick={e => e.stopPropagation()}>
+              <div className="mb-5 flex items-center justify-between">
+                <div>
+                  <h3 className={`text-xl font-black ${theme.strong}`}>⚙️ הגדרות עיצוב</h3>
+                  <p className={`mt-1 text-sm ${theme.muted}`}>שינוי כפתורים, צל, צורה ורקע. לחיצה מחוץ לחלון סוגרת.</p>
                 </div>
+                <button
+                  onClick={() => setShowSidebar(false)}
+                  className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-black text-slate-700 shadow-sm hover:bg-slate-100"
+                >
+                  סגור
+                </button>
               </div>
 
-              <div className="rounded-2xl border border-zinc-200 bg-white/70 p-3 shadow-sm">
-                <div className={`mb-2 text-xs font-black ${theme.muted}`}>עומק / צל</div>
-                <div className="grid grid-cols-3 gap-2">
-                  {[["none", "שטוח"], ["normal", "עדין"], ["strong", "חזק"]].map(([s, label]) => (
-                    <button
-                      key={s}
-                      onClick={() => setButtonShadow(s)}
-                      className={`rounded-full px-3 py-2 text-xs font-black transition ${buttonShadow === s ? "bg-zinc-900 text-white shadow-md" : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200"}`}
-                    >
-                      {label}
-                    </button>
-                  ))}
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <div className="rounded-2xl border border-slate-200 bg-white/80 p-3 shadow-sm">
+                  <div className={`mb-2 text-xs font-black ${theme.muted}`}>גודל כפתורים</div>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[["sm", "קטן"], ["md", "רגיל"], ["lg", "גדול"]].map(([s, label]) => (
+                      <button key={s} onClick={() => setButtonSize(s)} className={`rounded-full px-3 py-2 text-xs font-black transition ${buttonSize === s ? "bg-slate-900 text-white shadow-md" : "bg-slate-100 text-slate-700 hover:bg-slate-200"}`}>{label}</button>
+                    ))}
+                  </div>
                 </div>
-              </div>
 
-              <div className="rounded-2xl border border-zinc-200 bg-white/70 p-3 shadow-sm">
-                <div className={`mb-2 text-xs font-black ${theme.muted}`}>צורת כפתור</div>
-                <div className="grid grid-cols-2 gap-2">
-                  {[["rounded-xl", "מעוגל"], ["rounded-full", "עגול"], ["rounded-none", "חד"], ["btn-3d", "תלת ממד"]].map(([style, label]) => (
-                    <button
-                      key={style}
-                      onClick={() => setButtonStyle(style)}
-                      className={`rounded-full px-3 py-2 text-xs font-black transition ${buttonStyle === style ? "bg-zinc-900 text-white shadow-md" : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200"}`}
-                    >
-                      {label}
-                    </button>
-                  ))}
+                <div className="rounded-2xl border border-slate-200 bg-white/80 p-3 shadow-sm">
+                  <div className={`mb-2 text-xs font-black ${theme.muted}`}>עומק / צל</div>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[["none", "שטוח"], ["normal", "עדין"], ["strong", "חזק"]].map(([s, label]) => (
+                      <button key={s} onClick={() => setButtonShadow(s)} className={`rounded-full px-3 py-2 text-xs font-black transition ${buttonShadow === s ? "bg-slate-900 text-white shadow-md" : "bg-slate-100 text-slate-700 hover:bg-slate-200"}`}>{label}</button>
+                    ))}
+                  </div>
                 </div>
-              </div>
 
-              <div className="rounded-2xl border border-zinc-200 bg-white/70 p-3 shadow-sm">
-                <div className={`mb-2 text-xs font-black ${theme.muted}`}>רקע</div>
-                <div className="grid grid-cols-2 gap-2">
-                  {Object.entries(themes).map(([key, item]) => (
-                    <button
-                      key={key}
-                      onClick={() => setThemeName(key)}
-                      className={`rounded-full px-3 py-2 text-xs font-black transition ${themeName === key ? "bg-zinc-900 text-white shadow-md" : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200"}`}
-                    >
-                      {item.name}
-                    </button>
-                  ))}
+                <div className="rounded-2xl border border-slate-200 bg-white/80 p-3 shadow-sm">
+                  <div className={`mb-2 text-xs font-black ${theme.muted}`}>צורת כפתור</div>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[["rounded-xl", "מעוגל"], ["rounded-full", "עגול"], ["rounded-none", "חד"], ["btn-3d", "תלת ממד"]].map(([style, label]) => (
+                      <button key={style} onClick={() => setButtonStyle(style)} className={`rounded-full px-3 py-2 text-xs font-black transition ${buttonStyle === style ? "bg-slate-900 text-white shadow-md" : "bg-slate-100 text-slate-700 hover:bg-slate-200"}`}>{label}</button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 bg-white/80 p-3 shadow-sm">
+                  <div className={`mb-2 text-xs font-black ${theme.muted}`}>רקע</div>
+                  <div className="grid grid-cols-2 gap-2">
+                    {Object.entries(themes).map(([key, item]) => (
+                      <button key={key} onClick={() => setThemeName(key)} className={`rounded-full px-3 py-2 text-xs font-black transition ${themeName === key ? "bg-slate-900 text-white shadow-md" : "bg-slate-100 text-slate-700 hover:bg-slate-200"}`}>{item.name}</button>
+                    ))}
+                  </div>
                 </div>
               </div>
-            </div>
-          </section>
+            </section>
+          </div>
         )}
       </div>
 
