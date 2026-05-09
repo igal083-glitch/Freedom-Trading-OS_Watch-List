@@ -108,6 +108,8 @@ function priorityLabel(score) {
 }
 
 function Button({ children, className = "", ...props }) {
+  const goldFrame = "border border-yellow-500/25 shadow-[0_0_0_1px_rgba(234,179,8,0.08)]";
+
   return (
     <button {...props} className={`rounded-xl px-4 py-2 text-sm font-black transition ${className}`}>
       {children}
@@ -633,13 +635,32 @@ function WatchTable({ rows, compactMode, drawerTicker, setDrawerTicker, updateRo
   );
 }
 
-function Drawer({ row, a, priority, updateRow, openChart, setDrawerTicker, setArchiveModal, setDeleteTicker, loadTicker, setRows, setLoading, setLastError, setLastRefreshTime, loading, handleImageUpload, today }) {
+function Drawer({
+  row,
+  a,
+  priority,
+  updateRow,
+  openChart,
+  setDrawerTicker,
+  setArchiveModal,
+  setDeleteTicker,
+  loadTicker,
+  setRows,
+  setLoading,
+  setLastError,
+  setLastRefreshTime,
+  loading,
+  handleImageUpload,
+  today,
+}) {
+  const goldFrame = "border border-yellow-500/25 shadow-[0_0_0_1px_rgba(234,179,8,0.08)]";
+
   async function loadSingle() {
     setLoading(true);
     setLastError("");
     try {
       const updated = await loadTicker(row);
-      setRows((prev) => prev.map((item) => item.ticker === row.ticker ? updated : item));
+      setRows((prev) => prev.map((item) => (item.ticker === row.ticker ? updated : item)));
       setLastRefreshTime(new Date().toLocaleTimeString());
     } catch {
       setLastError("בדיקת מניה נכשלה.");
@@ -654,36 +675,151 @@ function Drawer({ row, a, priority, updateRow, openChart, setDrawerTicker, setAr
         <div className="border-t border-slate-700/60 bg-gradient-to-l from-[#111827] via-[#0b1220] to-[#050816] px-5 py-5">
           <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <div className="flex items-center gap-3"><span className="rounded-2xl border border-slate-600 bg-slate-900 px-4 py-2 text-2xl font-black text-white">{row.ticker}</span><span className={`rounded-full px-3 py-1 text-xs font-black ${priority.className}`}>{priority.text}</span><span className={`rounded-full border px-3 py-1 text-xs font-black ${row.alert.className}`}>{row.alert.label}</span></div>
-              <p className={`mt-2 text-xs ${theme.muted}`}>מגירת עבודה — תזה, אלרט, מבנה, אזור כניסה ופסילת טרייד.</p>
+              <div className="flex items-center gap-3">
+                <span className="rounded-2xl border border-yellow-500/25 bg-slate-900 px-4 py-2 text-2xl font-black text-white shadow-[0_0_0_1px_rgba(234,179,8,0.08)]">
+                  {row.ticker}
+                </span>
+                <span className={`rounded-full px-3 py-1 text-xs font-black ${priority.className}`}>
+                  {priority.text}
+                </span>
+                <span className={`rounded-full border px-3 py-1 text-xs font-black ${row.alert.className}`}>
+                  {row.alert.label}
+                </span>
+              </div>
+              <p className={`mt-2 text-xs ${theme.muted}`}>
+                מגירת עבודה — תזה, אלרט, מבנה, אזור כניסה ופסילת טרייד.
+              </p>
             </div>
-            <div className="flex flex-wrap gap-2"><Button onClick={() => openChart(row.ticker)} className="border border-slate-500/40 bg-slate-800 text-slate-200">פתח גרף ↗</Button><Button onClick={() => setDrawerTicker("")} className={theme.accent}>סגור</Button></div>
+
+            <div className="flex flex-wrap gap-2">
+              <Button onClick={() => openChart(row.ticker)} className="border border-slate-500/40 bg-slate-800 text-slate-200">
+                פתח גרף ↗
+              </Button>
+              <Button onClick={() => setDrawerTicker("")} className={theme.accent}>
+                סגור
+              </Button>
+            </div>
           </div>
 
           <div className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr_360px]">
             <div className="space-y-4">
               <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                <InfoCard label="Priority" value={row.priority} color="text-white" />
-                <InfoCard label="AI" value={a.aiStatus} color="text-yellow-300" />
-                <InfoCard label="Entry" value={a.entryZone} color="text-emerald-300" />
-                <InfoCard label="Invalidation" value={a.invalidation} color="text-red-300" />
+                <InfoCard label="Priority" value={row.priority} color="text-white" goldFrame={goldFrame} />
+                <InfoCard label="AI" value={a.aiStatus} color="text-yellow-300" goldFrame={goldFrame} />
+                <InfoCard label="Entry" value={a.entryZone} color="text-emerald-300" goldFrame={goldFrame} />
+                <InfoCard label="Invalidation" value={a.invalidation} color="text-red-300" goldFrame={goldFrame} />
               </div>
 
-              <div className={`rounded-3xl border p-4 ${theme.soft} ${theme.border}`}><h4 className={`mb-3 text-base font-black ${theme.strong}`}>מבנה והחלטת טרייד</h4><div className="grid gap-3 lg:grid-cols-3"><Box title="Structure" text={a.structure} /><Box title="Why" text={a.why} /><div className="rounded-2xl border border-slate-700/70 bg-black/20 p-3"><div className={`text-xs ${theme.muted}`}>Score</div><div className="mt-3 flex items-center gap-3"><div className="h-2 flex-1 rounded-full bg-slate-700"><div className="h-2 rounded-full bg-cyan-300" style={{ width: `${a.score}%` }} /></div><b className="text-white">{a.score}</b></div></div></div></div>
+              <div className={`rounded-3xl p-4 ${theme.soft} ${goldFrame}`}>
+                <h4 className={`mb-3 text-base font-black ${theme.strong}`}>מבנה והחלטת טרייד</h4>
+                <div className="grid gap-3 lg:grid-cols-3">
+                  <Box title="Structure" text={a.structure} />
+                  <Box title="Why" text={a.why} />
+                  <div className="rounded-2xl border border-slate-700/70 bg-black/20 p-3">
+                    <div className={`text-xs ${theme.muted}`}>Score</div>
+                    <div className="mt-3 flex items-center gap-3">
+                      <div className="h-2 flex-1 rounded-full bg-slate-700">
+                        <div className="h-2 rounded-full bg-cyan-300" style={{ width: `${a.score}%` }} />
+                      </div>
+                      <b className="text-white">{a.score}</b>
+                    </div>
+                  </div>
+                </div>
+              </div>
 
-              <div className={`rounded-3xl border p-4 ${theme.soft} ${theme.border}`}>
+              <div className={`rounded-3xl p-4 ${theme.soft} ${goldFrame}`}>
                 <h4 className={`mb-3 text-base font-black ${theme.strong}`}>תזה אישית</h4>
-                <div className="grid gap-3 lg:grid-cols-[180px_1fr]"><input type="date" value={row.thesisDate || today} onChange={(e) => updateRow(row.ticker, { thesisDate: e.target.value })} className={`rounded-2xl border p-3 text-sm outline-none ${theme.input}`} /><select value={row.thesisTitle || ""} onChange={(e) => updateRow(row.ticker, { thesisTitle: e.target.value })} className={`rounded-2xl border p-3 text-sm outline-none ${theme.input}`}><option value="">בחר תבנית</option><option value="Spike + Wait Base">Spike + Wait Base</option><option value="Pullback Continuation">Pullback Continuation</option><option value="Base Before Breakout">Base Before Breakout</option><option value="Breakout Setup">Breakout Setup</option><option value="Range / Accumulation">Range / Accumulation</option><option value="Weak / Avoid">Weak / Avoid</option></select></div>
-                <textarea value={row.thesis || ""} onChange={(e) => updateRow(row.ticker, { thesis: e.target.value })} placeholder="מה ראיתי / תוכנית פעולה" className={`mt-3 min-h-[140px] w-full rounded-2xl border p-3 text-sm outline-none ${theme.input}`} />
+                <div className="grid gap-3 lg:grid-cols-[180px_1fr]">
+                  <input
+                    type="date"
+                    value={row.thesisDate || today}
+                    onChange={(e) => updateRow(row.ticker, { thesisDate: e.target.value })}
+                    className={`rounded-2xl border p-3 text-sm outline-none ${theme.input}`}
+                  />
+                  <select
+                    value={row.thesisTitle || ""}
+                    onChange={(e) => updateRow(row.ticker, { thesisTitle: e.target.value })}
+                    className={`rounded-2xl border p-3 text-sm outline-none ${theme.input}`}
+                  >
+                    <option value="">בחר תבנית</option>
+                    <option value="Spike + Wait Base">Spike + Wait Base</option>
+                    <option value="Pullback Continuation">Pullback Continuation</option>
+                    <option value="Base Before Breakout">Base Before Breakout</option>
+                    <option value="Breakout Setup">Breakout Setup</option>
+                    <option value="Range / Accumulation">Range / Accumulation</option>
+                    <option value="Weak / Avoid">Weak / Avoid</option>
+                  </select>
+                </div>
+                <textarea
+                  value={row.thesis || ""}
+                  onChange={(e) => updateRow(row.ticker, { thesis: e.target.value })}
+                  placeholder="מה ראיתי / תוכנית פעולה"
+                  className={`mt-3 min-h-[140px] w-full rounded-2xl border p-3 text-sm outline-none ${theme.input}`}
+                />
               </div>
             </div>
 
             <div className="space-y-4">
-              <div className={`rounded-3xl border p-4 ${theme.soft} ${theme.border}`}><h4 className={`mb-3 text-base font-black ${theme.strong}`}>אלרט ובדיקה</h4><input type="number" value={row.alertPrice || ""} onChange={(e) => updateRow(row.ticker, { alertPrice: e.target.value })} placeholder="Alert Price" className={`w-full rounded-2xl border p-3 text-sm outline-none ${theme.input}`} /><select value={row.alertType || "above"} onChange={(e) => updateRow(row.ticker, { alertType: e.target.value })} className={`mt-3 w-full rounded-2xl border p-3 text-sm outline-none ${theme.input}`}><option value="above">Above — מעל מחיר</option><option value="below">Below — מתחת מחיר</option></select><div className={`mt-3 rounded-2xl border p-3 ${row.alert.className}`}><div className="text-xs font-black">מצב אלרט</div><div className="mt-1 text-lg font-black">{row.alert.label}</div></div><Button onClick={loadSingle} className="mt-3 w-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-300">{loading ? "טוען..." : "טען מניה"}</Button></div>
-              <div className={`rounded-3xl border p-4 ${theme.soft} ${theme.border}`}><h4 className={`mb-3 text-base font-black ${theme.strong}`}>ניהול מהיר</h4><div className="grid gap-2"><Button onClick={() => updateRow(row.ticker, { analysis: { ...a, aiStatus: "READY" } })} className="border border-emerald-500/30 text-emerald-300">אשר סטאפ AI</Button><Button onClick={() => setArchiveModal({ open: true, ticker: row.ticker, reason: "" })} className="border border-yellow-500/30 text-yellow-300">העבר לארכיון</Button><Button onClick={() => setDeleteTicker(row.ticker)} className="border border-red-500/30 text-red-300">מחק מהרשימה</Button></div></div>
+              <div className={`rounded-3xl p-4 ${theme.soft} ${goldFrame}`}>
+                <h4 className={`mb-3 text-base font-black ${theme.strong}`}>אלרט ובדיקה</h4>
+                <input
+                  type="number"
+                  value={row.alertPrice || ""}
+                  onChange={(e) => updateRow(row.ticker, { alertPrice: e.target.value })}
+                  placeholder="Alert Price"
+                  className={`w-full rounded-2xl border p-3 text-sm outline-none ${theme.input}`}
+                />
+                <select
+                  value={row.alertType || "above"}
+                  onChange={(e) => updateRow(row.ticker, { alertType: e.target.value })}
+                  className={`mt-3 w-full rounded-2xl border p-3 text-sm outline-none ${theme.input}`}
+                >
+                  <option value="above">Above — מעל מחיר</option>
+                  <option value="below">Below — מתחת מחיר</option>
+                </select>
+                <div className={`mt-3 rounded-2xl border p-3 ${row.alert.className}`}>
+                  <div className="text-xs font-black">מצב אלרט</div>
+                  <div className="mt-1 text-lg font-black">{row.alert.label}</div>
+                </div>
+                <Button onClick={loadSingle} className="mt-3 w-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-300">
+                  {loading ? "טוען..." : "טען מניה"}
+                </Button>
+              </div>
+
+              <div className={`rounded-3xl p-4 ${theme.soft} ${goldFrame}`}>
+                <h4 className={`mb-3 text-base font-black ${theme.strong}`}>ניהול מהיר</h4>
+                <div className="grid gap-2">
+                  <Button onClick={() => updateRow(row.ticker, { analysis: { ...a, aiStatus: "READY" } })} className="border border-emerald-500/30 text-emerald-300">
+                    אשר סטאפ AI
+                  </Button>
+                  <Button onClick={() => setArchiveModal({ open: true, ticker: row.ticker, reason: "" })} className="border border-yellow-500/30 text-yellow-300">
+                    העבר לארכיון
+                  </Button>
+                  <Button onClick={() => setDeleteTicker(row.ticker)} className="border border-red-500/30 text-red-300">
+                    מחק מהרשימה
+                  </Button>
+                </div>
+              </div>
             </div>
 
-            <div className={`rounded-3xl border p-4 ${theme.soft} ${theme.border}`}><h4 className={`mb-3 text-base font-black ${theme.strong}`}>תמונת גרף</h4><input type="file" accept="image/*" onChange={(e) => handleImageUpload(row.ticker, e.target.files && e.target.files[0])} className={`w-full rounded-2xl border p-3 text-sm ${theme.input}`} />{row.chartImage ? <div className="mt-3 overflow-hidden rounded-2xl border border-slate-700 bg-black"><img src={row.chartImage} alt={`chart-${row.ticker}`} className="max-h-[420px] w-full object-contain" /></div> : <div className={`mt-3 rounded-2xl border p-5 text-center text-sm ${theme.border} bg-black/20 ${theme.muted}`}>עדיין לא הועלתה תמונת גרף.</div>}</div>
+            <div className={`rounded-3xl p-4 ${theme.soft} ${goldFrame}`}>
+              <h4 className={`mb-3 text-base font-black ${theme.strong}`}>תמונת גרף</h4>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => handleImageUpload(row.ticker, e.target.files && e.target.files[0])}
+                className={`w-full rounded-2xl border p-3 text-sm ${theme.input}`}
+              />
+              {row.chartImage ? (
+                <div className="mt-3 overflow-hidden rounded-2xl border border-slate-700 bg-black">
+                  <img src={row.chartImage} alt={`chart-${row.ticker}`} className="max-h-[420px] w-full object-contain" />
+                </div>
+              ) : (
+                <div className={`mt-3 rounded-2xl border p-5 text-center text-sm ${theme.border} bg-black/20 ${theme.muted}`}>
+                  עדיין לא הועלתה תמונת גרף.
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </td>
@@ -691,12 +827,22 @@ function Drawer({ row, a, priority, updateRow, openChart, setDrawerTicker, setAr
   );
 }
 
-function InfoCard({ label, value, color }) {
-  return <div className={`rounded-2xl border p-4 ${theme.soft} ${theme.border}`}><div className={`text-xs font-black ${theme.muted}`}>{label}</div><div className={`mt-2 text-lg font-black ${color}`}>{value}</div></div>;
+function InfoCard({ label, value, color, goldFrame = theme.border }) {
+  return (
+    <div className={`rounded-2xl p-4 ${theme.soft} ${goldFrame}`}>
+      <div className={`text-xs font-black ${theme.muted}`}>{label}</div>
+      <div className={`mt-2 text-lg font-black ${color}`}>{value}</div>
+    </div>
+  );
 }
 
 function Box({ title, text }) {
-  return <div className="rounded-2xl border border-slate-700/70 bg-black/20 p-3"><div className={`text-xs ${theme.muted}`}>{title}</div><div className="mt-2 text-sm font-bold text-slate-100">{text}</div></div>;
+  return (
+    <div className="rounded-2xl border border-slate-700/70 bg-black/20 p-3">
+      <div className={`text-xs ${theme.muted}`}>{title}</div>
+      <div className="mt-2 text-sm font-bold text-slate-100">{text}</div>
+    </div>
+  );
 }
 
 function DeleteModal({ ticker, setTicker, setRows }) {
@@ -705,7 +851,6 @@ function DeleteModal({ ticker, setTicker, setRows }) {
       <div className={`w-full max-w-md rounded-3xl border p-6 ${theme.card}`}>
         <h3 className={`text-xl font-black ${theme.strong}`}>מחיקת מניה</h3>
         <p className={`mt-2 text-sm ${theme.muted}`}>האם למחוק את {ticker} מהרשימה?</p>
-
         <div className="mt-5 flex gap-3">
           <Button
             onClick={() => {
@@ -716,7 +861,6 @@ function DeleteModal({ ticker, setTicker, setRows }) {
           >
             מחק
           </Button>
-
           <Button onClick={() => setTicker(null)} className={theme.navIdle}>
             ביטול
           </Button>
@@ -731,15 +875,12 @@ function ArchiveModal({ archiveModal, setArchiveModal, updateRow }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
       <div className={`w-full max-w-lg rounded-3xl border p-6 ${theme.card}`}>
         <h3 className={`text-xl font-black ${theme.strong}`}>העבר לארכיון</h3>
-        <p className={`mt-2 text-sm ${theme.muted}`}>למה להעביר את {archiveModal.ticker} לארכיון?</p>
-
         <textarea
           value={archiveModal.reason}
           onChange={(e) => setArchiveModal((prev) => ({ ...prev, reason: e.target.value }))}
           placeholder="סיבה להעברה לארכיון — אופציונלי"
           className={`mt-4 min-h-[120px] w-full rounded-2xl border p-3 text-sm outline-none ${theme.input}`}
         />
-
         <div className="mt-5 flex gap-3">
           <Button
             onClick={() => {
@@ -755,11 +896,7 @@ function ArchiveModal({ archiveModal, setArchiveModal, updateRow }) {
           >
             העבר
           </Button>
-
-          <Button
-            onClick={() => setArchiveModal({ open: false, ticker: null, reason: "" })}
-            className={theme.navIdle}
-          >
+          <Button onClick={() => setArchiveModal({ open: false, ticker: null, reason: "" })} className={theme.navIdle}>
             ביטול
           </Button>
         </div>
