@@ -585,18 +585,14 @@ function WatchTable({ rows, compactMode, drawerTicker, setDrawerTicker, updateRo
             <p className={`mt-1 text-xs ${theme.muted}`}>לחיצה על כל שורת מניה פותחת מגירה מתחת לשורה.</p>
           </div>
 
-          <div className="flex w-full max-w-[520px] gap-2">
+          <div className="w-full max-w-[520px]">
             <input
               value={newTicker}
               onChange={(e) => setNewTicker(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && addTicker()}
-              placeholder="הוסף טיקר"
+              placeholder="הוסף טיקר ולחץ Enter"
               className={`w-full rounded-2xl border px-4 py-3 text-sm uppercase outline-none ${theme.input}`}
             />
-
-            <Button onClick={addTicker} className={theme.accent}>
-              הוסף
-            </Button>
           </div>
         </div>
       </div>
@@ -760,7 +756,10 @@ function ArchiveModal({ archiveModal, setArchiveModal, updateRow }) {
             העבר
           </Button>
 
-          <Button onClick={() => setArchiveModal({ open: false, ticker: null, reason: "" })} className={theme.navIdle}>
+          <Button
+            onClick={() => setArchiveModal({ open: false, ticker: null, reason: "" })}
+            className={theme.navIdle}
+          >
             ביטול
           </Button>
         </div>
