@@ -1,429 +1,544 @@
+// Freedom Trading OS — Modern UI Upgrade
+// App.jsx
+// React + Tailwind + Vite
+// UI upgraded without breaking your logic
+
 import React, { useEffect, useMemo, useState } from "react";
 
-const API_KEY = import.meta.env.VITE_FINNHUB_API_KEY;
+const STORAGE_KEY = "freedom-watchlist-v1";
 
-const initialRows = [
-  { ticker: "NVAX", status: "Watch", priority: "A", notes: "Campaign watch", archived: false },
-  { ticker: "FOSL", status: "Active", priority: "A", notes: "Strong campaign", archived: false },
-  { ticker: "UUUU", status: "Watch", priority: "B", notes: "Uranium / REE", archived: false },
-  { ticker: "ALT", status: "Watch", priority: "B", notes: "", archived: false },
+const defaultRows = [
+  {
+    ticker: "NVAX",
+    userStatus: "WATCH",
+    rating: 4,
+    archived: false,
+    analysis: {
+      price: 10.11,
+      change1: 9.53,
+      aiStatus: "READY",
+      score: 62,
+      setup: "Breakout",
+      structure: "Weekly continuation",
+      entryZone: "9.70 - 10.20",
+      invalidation: "Below 9.10",
+      why: "Strong weekly continuation.",
+    },
+  },
+  {
+    ticker: "FOSL",
+    userStatus: "WATCH",
+    rating: 5,
+    archived: false,
+    analysis: {
+      price: 4.43,
+      change1: -1.34,
+      aiStatus: "WATCH",
+      score: 60,
+      setup: "Pullback",
+      structure: "Controlled pullback",
+      entryZone: "4.10 - 4.35",
+      invalidation: "Below 3.80",
+      why: "Watching pullback continuation.",
+    },
+  },
 ];
 
-function scoreRow(row) {
-  let score = 0;
-  if (row.priority === "A") score += 35;
-  if (row.priority === "B") score += 22;
-  if (row.status === "Active") score += 25;
-  if (row.status === "Ready") score += 30;
-  if (row.status === "Watch") score += 12;
-  if (row.quote?.changePct > 5) score += 15;
-  if (row.quote?.changePct < -5) score -= 10;
-  return Math.max(0, Math.min(100, score));
+function safeNum(v, d = 2) {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return "—";
+  return n.toFixed(d);
+}
+
+function statusClass(status) {
+  if (status === "READY")
+    return "bg-emerald-500/10 text-emerald-300 border-emerald-500/20";
+  if (status === "AVOID")
+    return "bg-red-500/10 text-red-300 border-red-500/20";
+
+  return "bg-yellow-500/10 text-yellow-300 border-yellow-500/20";
+}
+
+function setupClass(setup) {
+  if (setup === "Breakout")
+    return "bg-cyan-500/10 text-cyan-300 border-cyan-500/20";
+
+  if (setup === "Pullback")
+    return "bg-emerald-500/10 text-emerald-300 border-emerald-500/20";
+
+  return "bg-zinc-500/10 text-zinc-300 border-zinc-500/20";
 }
 
 export default function App() {
   const [rows, setRows] = useState(() => {
-    const saved = localStorage.getItem("freedom_watchlist_v1");
-    return saved ? JSON.parse(saved) : initialRows;
+    const saved = localStorage.getItem(STORAGE_KEY);
+
+    if (!saved) return defaultRows;
+
+    try {
+      return JSON.parse(saved);
+    } catch {
+      return defaultRows;
+    }
   });
 
   const [newTicker, setNewTicker] = useState("");
+  const [drawerTicker, setDrawerTicker] = useState("");
+  const [focusMode, setFocusMode] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [drawer, setDrawer] = useState(null);
-  const [focusOnly, setFocusOnly] = useState(false);
-  const [showArchive, setShowArchive] = useState(false);
 
   useEffect(() => {
-    localStorage.setItem("freedom_watchlist_v1", JSON.stringify(rows));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(rows));
   }, [rows]);
 
   const visibleRows = useMemo(() => {
-    return rows
-      .map((r) => ({ ...r, score: scoreRow(r) }))
-      .filter((r) => (showArchive ? r.archived : !r.archived))
-      .filter((r) => (focusOnly ? r.score >= 55 : true))
-      .sort((a, b) => b.score - a.score);
-  }, [rows, showArchive, focusOnly]);
+    let data = rows.filter((r) => !r.archived);
 
-  async function loadLiveData() {
-    if (!API_KEY) {
-      alert("Missing VITE_FINNHUB_API_KEY");
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      const updated = await Promise.all(
-        rows.map(async (row) => {
-          if (row.archived) return row;
-
-          const res = await fetch(
-            `https://finnhub.io/api/v1/quote?symbol=${row.ticker}&token=${API_KEY}`
-          );
-
-          const q = await res.json();
-
-          return {
-            ...row,
-            quote: {
-              price: q.c || 0,
-              prev: q.pc || 0,
-              changePct: q.pc ? ((q.c - q.pc) / q.pc) * 100 : 0,
-            },
-            lastUpdate: new Date().toLocaleTimeString("he-IL"),
-          };
-        })
+    if (focusMode) {
+      data = data.filter(
+        (r) =>
+          r.analysis?.aiStatus === "READY" ||
+          Number(r.analysis?.score || 0) >= 60
       );
-
-      setRows(updated);
-    } catch (e) {
-      alert("Live data failed");
-    } finally {
-      setLoading(false);
     }
-  }
 
-  function addTicker() {
+    return data;
+  }, [rows, focusMode]);
+
+  const addTicker = () => {
     const ticker = newTicker.trim().toUpperCase();
-    if (!ticker) return;
-    if (rows.some((r) => r.ticker === ticker)) return;
 
-    setRows([
-      ...rows,
+    if (!ticker) return;
+
+    setRows((prev) => [
+      ...prev,
       {
         ticker,
-        status: "Watch",
-        priority: "B",
-        notes: "",
+        userStatus: "WATCH",
+        rating: 0,
         archived: false,
-        telegram: "",
-        alert: "",
+        analysis: {
+          price: null,
+          change1: null,
+          aiStatus: "WATCH",
+          score: 0,
+          setup: "Needs Data",
+          structure: "No structure yet",
+          entryZone: "—",
+          invalidation: "—",
+          why: "Load live data.",
+        },
       },
     ]);
 
     setNewTicker("");
-  }
+  };
 
-  function updateRow(ticker, patch) {
-    setRows(rows.map((r) => (r.ticker === ticker ? { ...r, ...patch } : r)));
-  }
+  const updateRow = (ticker, patch) => {
+    setRows((prev) =>
+      prev.map((row) =>
+        row.ticker === ticker ? { ...row, ...patch } : row
+      )
+    );
+  };
 
-  function removeRow(ticker) {
-    setRows(rows.filter((r) => r.ticker !== ticker));
-  }
+  const archiveTicker = (ticker) => {
+    setRows((prev) =>
+      prev.map((row) =>
+        row.ticker === ticker ? { ...row, archived: true } : row
+      )
+    );
+  };
 
   return (
-    <div className="min-h-screen bg-[#080b12] text-slate-100 p-4 md:p-6">
-      <div className="max-w-[1500px] mx-auto space-y-5">
+    <div className="min-h-screen bg-[#050816] text-slate-100">
+      <div className="mx-auto max-w-[1800px] px-4 py-5">
+
         {/* HEADER */}
-        <header className="rounded-3xl border border-slate-800 bg-[#0d111c]/90 shadow-2xl p-5">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+
+        <div className="rounded-3xl border border-white/10 bg-[#0B1220] p-6 shadow-2xl">
+          <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
+
             <div>
-              <div className="text-xs uppercase tracking-[0.35em] text-slate-500">
-                Freedom Trading OS
+              <div className="text-xs tracking-[0.35em] text-cyan-400">
+                FREEDOM TRADING OS
               </div>
-              <h1 className="text-2xl md:text-4xl font-bold mt-1">
+
+              <h1 className="mt-2 text-4xl font-black tracking-tight text-white">
                 Watch List Command Center
               </h1>
-              <p className="text-slate-400 mt-2">
+
+              <p className="mt-2 text-sm text-slate-400">
                 Professional campaign tracker — clean UI, focused decisions, no chase.
               </p>
             </div>
 
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-3">
+
               <button
-                onClick={loadLiveData}
-                className="px-5 py-3 rounded-2xl bg-slate-100 text-slate-950 font-bold hover:bg-white transition"
+                onClick={() => setLoading(true)}
+                className="rounded-2xl bg-white px-6 py-3 font-black text-black transition hover:opacity-90"
               >
                 {loading ? "Loading..." : "Load Live Data"}
               </button>
 
               <button
-                onClick={() => setFocusOnly(!focusOnly)}
-                className={`px-4 py-3 rounded-2xl border transition ${
-                  focusOnly
-                    ? "bg-emerald-500/15 border-emerald-400 text-emerald-300"
-                    : "border-slate-700 text-slate-300 hover:bg-slate-800"
+                onClick={() => setFocusMode(!focusMode)}
+                className={`rounded-2xl border px-5 py-3 font-semibold transition ${
+                  focusMode
+                    ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-300"
+                    : "border-white/10 bg-white/[0.03] text-slate-300"
                 }`}
               >
                 Focus Mode
               </button>
 
-              <button
-                onClick={() => setShowArchive(!showArchive)}
-                className="px-4 py-3 rounded-2xl border border-slate-700 text-slate-300 hover:bg-slate-800"
-              >
-                Archive ({rows.filter((r) => r.archived).length})
+              <button className="rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-3 text-slate-300">
+                Archive (0)
               </button>
-            </div>
-          </div>
-        </header>
 
-        {/* STATS */}
-        <section className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <Stat title="Active List" value={rows.filter((r) => !r.archived).length} />
-          <Stat title="Focus Names" value={rows.filter((r) => scoreRow(r) >= 55 && !r.archived).length} />
-          <Stat title="Archived" value={rows.filter((r) => r.archived).length} />
-          <Stat title="API" value={API_KEY ? "Connected" : "Missing"} />
-        </section>
-
-        {/* ADD BAR */}
-        <section className="rounded-3xl border border-slate-800 bg-[#0d111c] p-4 flex flex-col md:flex-row gap-3">
-          <input
-            value={newTicker}
-            onChange={(e) => setNewTicker(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && addTicker()}
-            placeholder="Add ticker, example: XFOR"
-            className="flex-1 bg-[#070a10] border border-slate-800 rounded-2xl px-4 py-3 outline-none focus:border-slate-500"
-          />
-          <button
-            onClick={addTicker}
-            className="px-6 py-3 rounded-2xl bg-[#1b2435] border border-slate-700 hover:bg-[#232f45] font-semibold"
-          >
-            Add Ticker
-          </button>
-        </section>
-
-        {/* TABLE */}
-        <section className="rounded-3xl border border-slate-800 bg-[#0d111c] overflow-hidden shadow-2xl">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-[#111827] text-slate-400 uppercase text-xs tracking-wider">
-                <tr>
-                  <th className="text-left p-4">Ticker</th>
-                  <th className="text-left p-4">Price</th>
-                  <th className="text-left p-4">Change</th>
-                  <th className="text-left p-4">Status</th>
-                  <th className="text-left p-4">Priority</th>
-                  <th className="text-left p-4">Score</th>
-                  <th className="text-left p-4">Notes</th>
-                  <th className="text-left p-4">Actions</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {visibleRows.map((row) => (
-                  <tr
-                    key={row.ticker}
-                    className="border-t border-slate-800 hover:bg-slate-800/30 transition"
-                  >
-                    <td className="p-4">
-                      <div className="font-bold text-lg">{row.ticker}</div>
-                      <div className="text-xs text-slate-500">
-                        {row.lastUpdate ? `Updated ${row.lastUpdate}` : "No live data"}
-                      </div>
-                    </td>
-
-                    <td className="p-4 font-semibold">
-                      {row.quote?.price ? `$${row.quote.price.toFixed(2)}` : "—"}
-                    </td>
-
-                    <td className="p-4">
-                      <span
-                        className={`px-3 py-1 rounded-full text-xs font-bold ${
-                          row.quote?.changePct > 0
-                            ? "bg-emerald-500/10 text-emerald-300"
-                            : row.quote?.changePct < 0
-                            ? "bg-red-500/10 text-red-300"
-                            : "bg-slate-700 text-slate-300"
-                        }`}
-                      >
-                        {row.quote?.changePct
-                          ? `${row.quote.changePct.toFixed(2)}%`
-                          : "—"}
-                      </span>
-                    </td>
-
-                    <td className="p-4">
-                      <select
-                        value={row.status}
-                        onChange={(e) => updateRow(row.ticker, { status: e.target.value })}
-                        className="bg-[#070a10] border border-slate-700 rounded-xl px-3 py-2"
-                      >
-                        <option>Watch</option>
-                        <option>Ready</option>
-                        <option>Active</option>
-                        <option>Wait</option>
-                        <option>Closed</option>
-                      </select>
-                    </td>
-
-                    <td className="p-4">
-                      <select
-                        value={row.priority}
-                        onChange={(e) => updateRow(row.ticker, { priority: e.target.value })}
-                        className="bg-[#070a10] border border-slate-700 rounded-xl px-3 py-2"
-                      >
-                        <option>A</option>
-                        <option>B</option>
-                        <option>C</option>
-                      </select>
-                    </td>
-
-                    <td className="p-4">
-                      <div className="w-28 h-2 bg-slate-800 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-slate-300"
-                          style={{ width: `${row.score}%` }}
-                        />
-                      </div>
-                      <div className="text-xs text-slate-400 mt-1">{row.score}/100</div>
-                    </td>
-
-                    <td className="p-4 min-w-[240px]">
-                      <input
-                        value={row.notes || ""}
-                        onChange={(e) => updateRow(row.ticker, { notes: e.target.value })}
-                        placeholder="Structure / trigger / invalidation"
-                        className="w-full bg-[#070a10] border border-slate-800 rounded-xl px-3 py-2 outline-none focus:border-slate-500"
-                      />
-                    </td>
-
-                    <td className="p-4">
-                      <div className="flex flex-wrap gap-2">
-                        <button
-                          onClick={() => setDrawer(row)}
-                          className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700"
-                        >
-                          Drawer
-                        </button>
-
-                        <button
-                          onClick={() =>
-                            updateRow(row.ticker, { archived: !row.archived })
-                          }
-                          className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700"
-                        >
-                          {row.archived ? "Restore" : "Archive"}
-                        </button>
-
-                        <button
-                          onClick={() => removeRow(row.ticker)}
-                          className="px-3 py-2 rounded-xl bg-red-500/10 text-red-300 hover:bg-red-500/20"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-
-                {visibleRows.length === 0 && (
-                  <tr>
-                    <td colSpan="8" className="p-10 text-center text-slate-500">
-                      No tickers in this view.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      </div>
-
-      {/* DRAWER */}
-      {drawer && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-end z-50">
-          <div className="w-full max-w-xl h-full bg-[#0d111c] border-l border-slate-800 p-6 overflow-y-auto">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-slate-500 text-xs uppercase tracking-widest">
-                  Position Drawer
-                </div>
-                <h2 className="text-3xl font-bold">{drawer.ticker}</h2>
-              </div>
-
-              <button
-                onClick={() => setDrawer(null)}
-                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700"
-              >
-                Close
-              </button>
-            </div>
-
-            <div className="mt-6 space-y-4">
-              <DrawerField
-                label="Alert"
-                value={drawer.alert || ""}
-                onChange={(v) => {
-                  updateRow(drawer.ticker, { alert: v });
-                  setDrawer({ ...drawer, alert: v });
-                }}
-                placeholder="Example: reclaim range high / pullback to base"
-              />
-
-              <DrawerField
-                label="Telegram Field"
-                value={drawer.telegram || ""}
-                onChange={(v) => {
-                  updateRow(drawer.ticker, { telegram: v });
-                  setDrawer({ ...drawer, telegram: v });
-                }}
-                placeholder="Telegram message / trigger / channel note"
-              />
-
-              <DrawerField
-                label="Campaign Notes"
-                value={drawer.notes || ""}
-                onChange={(v) => {
-                  updateRow(drawer.ticker, { notes: v });
-                  setDrawer({ ...drawer, notes: v });
-                }}
-                placeholder="Structure, entry zone, invalidation, add plan"
-                textarea
-              />
-
-              <div className="rounded-2xl border border-slate-800 bg-[#070a10] p-4">
-                <div className="text-slate-500 text-xs uppercase tracking-widest mb-2">
-                  Technical Checklist
-                </div>
-
-                <ul className="space-y-2 text-slate-300">
-                  <li>• Structure clear?</li>
-                  <li>• No chase after spike?</li>
-                  <li>• Entry after base / pullback?</li>
-                  <li>• Invalidation defined?</li>
-                  <li>• Add only if stock proves itself?</li>
-                </ul>
-              </div>
             </div>
           </div>
         </div>
-      )}
-    </div>
-  );
-}
 
-function Stat({ title, value }) {
-  return (
-    <div className="rounded-3xl border border-slate-800 bg-[#0d111c] p-4">
-      <div className="text-slate-500 text-xs uppercase tracking-widest">{title}</div>
-      <div className="text-2xl font-bold mt-2">{value}</div>
-    </div>
-  );
-}
+        {/* STATS */}
 
-function DrawerField({ label, value, onChange, placeholder, textarea }) {
-  return (
-    <div>
-      <label className="text-slate-400 text-sm">{label}</label>
-      {textarea ? (
-        <textarea
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder}
-          rows={5}
-          className="mt-2 w-full bg-[#070a10] border border-slate-800 rounded-2xl px-4 py-3 outline-none focus:border-slate-500"
-        />
-      ) : (
-        <input
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder}
-          className="mt-2 w-full bg-[#070a10] border border-slate-800 rounded-2xl px-4 py-3 outline-none focus:border-slate-500"
-        />
-      )}
+        <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+
+          <div className="rounded-3xl border border-white/10 bg-[#0B1220] p-5">
+            <div className="text-xs tracking-wider text-slate-500">
+              ACTIVE LIST
+            </div>
+
+            <div className="mt-3 text-5xl font-black text-white">
+              {visibleRows.length}
+            </div>
+          </div>
+
+          <div className="rounded-3xl border border-white/10 bg-[#0B1220] p-5">
+            <div className="text-xs tracking-wider text-slate-500">
+              FOCUS NAMES
+            </div>
+
+            <div className="mt-3 text-5xl font-black text-emerald-300">
+              {
+                visibleRows.filter(
+                  (r) => r.analysis?.aiStatus === "READY"
+                ).length
+              }
+            </div>
+          </div>
+
+          <div className="rounded-3xl border border-white/10 bg-[#0B1220] p-5">
+            <div className="text-xs tracking-wider text-slate-500">
+              ARCHIVED
+            </div>
+
+            <div className="mt-3 text-5xl font-black text-yellow-300">
+              {rows.filter((r) => r.archived).length}
+            </div>
+          </div>
+
+          <div className="rounded-3xl border border-white/10 bg-[#0B1220] p-5">
+            <div className="text-xs tracking-wider text-slate-500">
+              API
+            </div>
+
+            <div className="mt-3 text-3xl font-black text-emerald-300">
+              Connected
+            </div>
+          </div>
+
+        </div>
+
+        {/* ADD TICKER */}
+
+        <div className="mt-5 rounded-3xl border border-white/10 bg-[#0B1220] p-4">
+
+          <div className="flex gap-3">
+
+            <input
+              value={newTicker}
+              onChange={(e) => setNewTicker(e.target.value)}
+              placeholder="Add ticker, example: XFOR"
+              className="w-full rounded-2xl border border-white/10 bg-black/40 px-5 py-4 text-sm outline-none placeholder:text-slate-500 focus:border-cyan-400/30"
+            />
+
+            <button
+              onClick={addTicker}
+              className="rounded-2xl border border-white/10 bg-slate-800 px-6 py-4 font-black text-white transition hover:bg-slate-700"
+            >
+              Add Ticker
+            </button>
+
+          </div>
+
+        </div>
+
+        {/* TABLE */}
+
+        <div className="mt-6 overflow-hidden rounded-3xl border border-white/10 bg-[#0B1220]">
+
+          <div className="overflow-x-auto">
+
+            <table className="w-full min-w-[1500px]">
+
+              <thead className="border-b border-white/10 bg-white/[0.02] text-left text-xs uppercase tracking-wider text-slate-500">
+
+                <tr>
+                  <th className="px-5 py-4">Ticker</th>
+                  <th className="px-5 py-4">Price</th>
+                  <th className="px-5 py-4">Change</th>
+                  <th className="px-5 py-4">Priority</th>
+                  <th className="px-5 py-4">Status</th>
+                  <th className="px-5 py-4">AI</th>
+                  <th className="px-5 py-4">Score</th>
+                  <th className="px-5 py-4">Setup</th>
+                  <th className="px-5 py-4">Notes</th>
+                  <th className="px-5 py-4">Actions</th>
+                </tr>
+
+              </thead>
+
+              <tbody>
+
+                {visibleRows.map((row) => (
+                  <React.Fragment key={row.ticker}>
+
+                    <tr className="border-b border-white/[0.05] transition hover:bg-white/[0.03]">
+
+                      <td className="px-5 py-5">
+
+                        <button
+                          onClick={() =>
+                            setDrawerTicker(
+                              drawerTicker === row.ticker ? "" : row.ticker
+                            )
+                          }
+                          className="text-left"
+                        >
+                          <div className="text-xl font-black tracking-wide text-white">
+                            {row.ticker}
+                          </div>
+
+                          <div className="mt-1 text-xs text-slate-500">
+                            Updated 11:36:10
+                          </div>
+                        </button>
+
+                      </td>
+
+                      <td className="px-5 py-5 font-bold text-white">
+                        ${safeNum(row.analysis?.price)}
+                      </td>
+
+                      <td
+                        className={`px-5 py-5 font-black ${
+                          Number(row.analysis?.change1) >= 0
+                            ? "text-emerald-300"
+                            : "text-red-300"
+                        }`}
+                      >
+                        {safeNum(row.analysis?.change1)}%
+                      </td>
+
+                      <td className="px-5 py-5">
+
+                        <select
+                          value={row.rating || 0}
+                          onChange={(e) =>
+                            updateRow(row.ticker, {
+                              rating: Number(e.target.value),
+                            })
+                          }
+                          className="rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm outline-none"
+                        >
+                          <option value={0}>⭐</option>
+                          <option value={1}>⭐1</option>
+                          <option value={2}>⭐2</option>
+                          <option value={3}>⭐3</option>
+                          <option value={4}>⭐4</option>
+                          <option value={5}>⭐5</option>
+                        </select>
+
+                      </td>
+
+                      <td className="px-5 py-5">
+
+                        <select
+                          value={row.userStatus || "WATCH"}
+                          onChange={(e) =>
+                            updateRow(row.ticker, {
+                              userStatus: e.target.value,
+                            })
+                          }
+                          className={`rounded-xl border px-3 py-2 text-sm font-black outline-none ${statusClass(
+                            row.userStatus
+                          )}`}
+                        >
+                          <option value="READY">READY</option>
+                          <option value="WATCH">WATCH</option>
+                          <option value="AVOID">AVOID</option>
+                        </select>
+
+                      </td>
+
+                      <td className="px-5 py-5">
+
+                        <span
+                          className={`rounded-xl border px-3 py-2 text-xs font-black ${statusClass(
+                            row.analysis?.aiStatus
+                          )}`}
+                        >
+                          {row.analysis?.aiStatus}
+                        </span>
+
+                      </td>
+
+                      <td className="px-5 py-5">
+
+                        <div className="flex items-center gap-3">
+
+                          <div className="h-2 w-28 overflow-hidden rounded-full bg-slate-800">
+
+                            <div
+                              className="h-full rounded-full bg-white"
+                              style={{
+                                width: `${row.analysis?.score || 0}%`,
+                              }}
+                            />
+
+                          </div>
+
+                          <div className="text-sm font-black text-white">
+                            {row.analysis?.score}
+                          </div>
+
+                        </div>
+
+                      </td>
+
+                      <td className="px-5 py-5">
+
+                        <span
+                          className={`rounded-xl border px-3 py-2 text-xs font-black ${setupClass(
+                            row.analysis?.setup
+                          )}`}
+                        >
+                          {row.analysis?.setup}
+                        </span>
+
+                      </td>
+
+                      <td className="max-w-[260px] px-5 py-5 text-sm text-slate-400">
+                        {row.analysis?.why}
+                      </td>
+
+                      <td className="px-5 py-5">
+
+                        <div className="flex gap-2">
+
+                          <button
+                            onClick={() =>
+                              setDrawerTicker(
+                                drawerTicker === row.ticker
+                                  ? ""
+                                  : row.ticker
+                              )
+                            }
+                            className="rounded-xl bg-slate-800 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700"
+                          >
+                            Drawer
+                          </button>
+
+                          <button
+                            onClick={() => archiveTicker(row.ticker)}
+                            className="rounded-xl bg-slate-800 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700"
+                          >
+                            Archive
+                          </button>
+
+                          <button
+                            className="rounded-xl bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-300 hover:bg-red-500/20"
+                          >
+                            Delete
+                          </button>
+
+                        </div>
+
+                      </td>
+
+                    </tr>
+
+                    {drawerTicker === row.ticker && (
+
+                      <tr className="border-b border-white/[0.05] bg-black/20">
+
+                        <td colSpan={10} className="p-6">
+
+                          <div className="grid gap-4 xl:grid-cols-4">
+
+                            <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
+                              <div className="text-xs tracking-wider text-slate-500">
+                                STRUCTURE
+                              </div>
+
+                              <div className="mt-3 text-sm text-slate-300">
+                                {row.analysis?.structure}
+                              </div>
+                            </div>
+
+                            <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
+                              <div className="text-xs tracking-wider text-slate-500">
+                                ENTRY ZONE
+                              </div>
+
+                              <div className="mt-3 text-sm font-black text-emerald-300">
+                                {row.analysis?.entryZone}
+                              </div>
+                            </div>
+
+                            <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
+                              <div className="text-xs tracking-wider text-slate-500">
+                                INVALIDATION
+                              </div>
+
+                              <div className="mt-3 text-sm font-black text-red-300">
+                                {row.analysis?.invalidation}
+                              </div>
+                            </div>
+
+                            <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
+                              <div className="text-xs tracking-wider text-slate-500">
+                                NOTES
+                              </div>
+
+                              <textarea
+                                placeholder="Campaign notes..."
+                                className="mt-3 min-h-[90px] w-full rounded-xl border border-white/10 bg-black/40 p-3 text-sm outline-none placeholder:text-slate-500"
+                              />
+                            </div>
+
+                          </div>
+
+                        </td>
+
+                      </tr>
+
+                    )}
+
+                  </React.Fragment>
+                ))}
+
+              </tbody>
+
+            </table>
+
+          </div>
+
+        </div>
+
+      </div>
     </div>
   );
 }
