@@ -122,12 +122,15 @@ export default function WatchListDashboard() {
     return saved ? JSON.parse(saved) : defaultRows;
   });
   const [newTicker, setNewTicker] = useState("");
-  const [apiKey, setApiKey] = useState(
+  const [rows, setRows] = useState(defaultRows);
+
+const [apiKey, setApiKey] = useState(
   () =>
     localStorage.getItem("finnhub-key") ||
     import.meta.env.VITE_FINNHUB_API_KEY ||
     ""
 );
+const [tickerInput, setTickerInput] = useState("");
   const [themeName, setThemeName] = useState(() => localStorage.getItem(THEME_KEY) || "white");
   const [activePanel, setActivePanel] = useState("main");
   const [loading, setLoading] = useState(false);
