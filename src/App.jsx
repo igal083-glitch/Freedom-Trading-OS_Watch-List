@@ -387,12 +387,7 @@ export default function WatchListDashboard() {
         <section className={`rounded-3xl border p-4 ${theme.card}`}>
           <div className="grid gap-3 lg:grid-cols-2">
             <input value={apiKey} onChange={(e) => setApiKey(e.target.value)} placeholder="Finnhub API Key" className={`rounded-2xl border px-4 py-3 text-sm outline-none ${theme.input}`} />
-            <div className="flex gap-2">
-              <input value={newTicker} onChange={(e) => setNewTicker(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addTicker()} placeholder="הוסף טיקר" className={`w-full rounded-2xl border px-4 py-3 text-sm uppercase outline-none ${theme.input}`} />
-              <Button onClick={addTicker} className={theme.accent}>הוסף</Button>
-            </div>
             <Button onClick={loadAllLive} disabled={loading} className="border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 disabled:opacity-50">{loading ? "טוען..." : "טען דאטה חי"}</Button>
-            <Button onClick={() => setActivePanel("guide")} className="border border-cyan-500/30 bg-cyan-500/10 text-cyan-300">פירוט מבנים</Button>
             <input value={telegramBotToken} onChange={(e) => setTelegramBotToken(e.target.value)} placeholder="Telegram Bot Token" className={`rounded-2xl border px-4 py-3 text-sm outline-none ${theme.input}`} />
             <input value={telegramChatId} onChange={(e) => setTelegramChatId(e.target.value)} placeholder="Telegram Chat ID" className={`rounded-2xl border px-4 py-3 text-sm outline-none ${theme.input}`} />
           </div>
@@ -443,6 +438,9 @@ export default function WatchListDashboard() {
             loading={loading}
             handleImageUpload={handleImageUpload}
             today={today}
+            newTicker={newTicker}
+            setNewTicker={setNewTicker}
+            addTicker={addTicker}
           />
         )}
 
@@ -577,12 +575,30 @@ function Archive({ rows, updateRow }) {
   );
 }
 
-function WatchTable({ rows, compactMode, drawerTicker, setDrawerTicker, updateRow, openChart, setArchiveModal, setDeleteTicker, loadTicker, setRows, setLoading, setLastError, setLastRefreshTime, loading, handleImageUpload, today }) {
+function WatchTable({ rows, compactMode, drawerTicker, setDrawerTicker, updateRow, openChart, setArchiveModal, setDeleteTicker, loadTicker, setRows, setLoading, setLastError, setLastRefreshTime, loading, handleImageUpload, today, newTicker, setNewTicker, addTicker }) {
   return (
     <section className={`overflow-hidden rounded-3xl border ${theme.card}`}>
       <div className="border-b border-slate-800/80 bg-[#07111f]/80 px-5 py-4">
-        <h2 className={`text-lg font-black ${theme.strong}`}>רשימת מעקב חכמה</h2>
-        <p className={`mt-1 text-xs ${theme.muted}`}>לחיצה על כל שורת מניה פותחת מגירה מתחת לשורה.</p>
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <h2 className={`text-lg font-black ${theme.strong}`}>רשימת מעקב חכמה</h2>
+            <p className={`mt-1 text-xs ${theme.muted}`}>לחיצה על כל שורת מניה פותחת מגירה מתחת לשורה.</p>
+          </div>
+
+          <div className="flex w-full max-w-[520px] gap-2">
+            <input
+              value={newTicker}
+              onChange={(e) => setNewTicker(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && addTicker()}
+              placeholder="הוסף טיקר"
+              className={`w-full rounded-2xl border px-4 py-3 text-sm uppercase outline-none ${theme.input}`}
+            />
+
+            <Button onClick={addTicker} className={theme.accent}>
+              הוסף
+            </Button>
+          </div>
+        </div>
       </div>
       <div className="overflow-x-auto">
         <table className={`w-full min-w-[1320px] border-collapse text-right text-xs xl:text-sm ${compactMode ? "ft-compact" : ""}`}>
@@ -692,9 +708,7 @@ function DeleteModal({ ticker, setTicker, setRows }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
       <div className={`w-full max-w-md rounded-3xl border p-6 ${theme.card}`}>
         <h3 className={`text-xl font-black ${theme.strong}`}>מחיקת מניה</h3>
-        <p className={`mt-2 text-sm ${theme.muted}`}>
-          האם למחוק את {ticker} מהרשימה?
-        </p>
+        <p className={`mt-2 text-sm ${theme.muted}`}>האם למחוק את {ticker} מהרשימה?</p>
 
         <div className="mt-5 flex gap-3">
           <Button
@@ -721,15 +735,11 @@ function ArchiveModal({ archiveModal, setArchiveModal, updateRow }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
       <div className={`w-full max-w-lg rounded-3xl border p-6 ${theme.card}`}>
         <h3 className={`text-xl font-black ${theme.strong}`}>העבר לארכיון</h3>
-        <p className={`mt-2 text-sm ${theme.muted}`}>
-          למה להעביר את {archiveModal.ticker} לארכיון?
-        </p>
+        <p className={`mt-2 text-sm ${theme.muted}`}>למה להעביר את {archiveModal.ticker} לארכיון?</p>
 
         <textarea
           value={archiveModal.reason}
-          onChange={(e) =>
-            setArchiveModal((prev) => ({ ...prev, reason: e.target.value }))
-          }
+          onChange={(e) => setArchiveModal((prev) => ({ ...prev, reason: e.target.value }))}
           placeholder="סיבה להעברה לארכיון — אופציונלי"
           className={`mt-4 min-h-[120px] w-full rounded-2xl border p-3 text-sm outline-none ${theme.input}`}
         />
@@ -750,10 +760,7 @@ function ArchiveModal({ archiveModal, setArchiveModal, updateRow }) {
             העבר
           </Button>
 
-          <Button
-            onClick={() => setArchiveModal({ open: false, ticker: null, reason: "" })}
-            className={theme.navIdle}
-          >
+          <Button onClick={() => setArchiveModal({ open: false, ticker: null, reason: "" })} className={theme.navIdle}>
             ביטול
           </Button>
         </div>
