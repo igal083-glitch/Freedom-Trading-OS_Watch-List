@@ -265,15 +265,91 @@ export default function WatchListDashboard() {
   };
 
   async function loadTicker(row) {
-    if (!apiKey) { setLastError("חסר Finnhub API Key"); return row; }
-    const to = Math.floor(Date.now() / 1000);
-    const from = to - 60 * 60 * 24 * 120;
-    const url = `https://finnhub.io/api/v1/stock/candle?symbol=${row.ticker}&resolution=D&from=${from}&to=${to}&token=${apiKey}`;
-    const res = await fetch(url);
-    const data = await res.json();
-    if (data.s !== "ok") return { ...row, analysis: { ...analyzeCandles([]), why: "לא נטען דאטה — בדוק טיקר/API" } };
-    const candles = data.t.map((time, i) => ({ time, open: data.o[i], high: data.h[i], low: data.l[i], close: data.c[i], volume: data.v[i] }));
-    return { ...row, candles, analysis: analyzeCandles(candles) };
+    const cleanKey = apiKey.trim();
+    if (!cleanKey) {
+      setLastError("חסר Finnhub API Key");
+      return row;
+    }
+
+    try {
+      // שלב 1: קודם טוענים Quote — זה endpoint יציב יותר ועובד גם בחינם
+      const quoteUrl = `https://finnhub.io/api/v1/quote?symbol=${row.ticker}&token=${cleanKey}`;
+      const quoteRes = await fetch(quoteUrl);
+      const quote = await quoteRes.json();
+
+      if (quote.error) {
+        return {
+          ...row,
+          analysis: {
+            ...analyzeCandles([]),
+            why: `שגיאת API: ${quote.error}`
+          }
+        };
+      }
+
+      if (!quote || !quote.c || quote.c === 0) {
+        return {
+          ...row,
+          analysis: {
+            ...analyzeCandles([]),
+            why: "לא התקבל מחיר חי — בדוק טיקר / API"
+          }
+        };
+      }
+
+      const price = quote.c;
+      const prevClose = quote.pc || quote.c;
+      const change1 = prevClose ? ((price - prevClose) / prevClose) * 100 : 0;
+      const high = quote.h || price;
+      const low = quote.l || price;
+
+      // ניתוח בסיסי לפי Quote בלבד
+      let setup = "Live Quote";
+      let aiStatus = "WATCH";
+      let score = 50;
+      let volumeSignal = "Quote Loaded";
+      let why = "מחיר חי נטען בהצלחה. לניתוח מבנה עמוק נדרש דאטה של נרות.";
+
+      if (change1 > 3) {
+        setup = "Breakout";
+        aiStatus = "READY";
+        score = 72;
+        why = "מחיר חי עולה חזק ביחס לסגירה קודמת — לבדוק גרף לפני כניסה.";
+      } else if (change1 < -3) {
+        setup = "Breakdown";
+        aiStatus = "AVOID";
+        score = 25;
+        why = "מחיר חי יורד חזק ביחס לסגירה קודמת — זהירות.";
+      }
+
+      const analysis = {
+        setup,
+        structure: `Live Quote | H ${safeNum(high)} | L ${safeNum(low)}`,
+        volumeSignal,
+        aiStatus,
+        score,
+        entryZone: `${safeNum(price * 0.98)}–${safeNum(price * 1.02)}`,
+        invalidation: `Below ${safeNum(low)}`,
+        why,
+        price,
+        change1
+      };
+
+      return {
+        ...row,
+        analysis,
+        lastLoadedAt: new Date().toISOString(),
+        alertNotified: false
+      };
+    } catch (e) {
+      return {
+        ...row,
+        analysis: {
+          ...analyzeCandles([]),
+          why: "טעינת Quote נכשלה — בדוק חיבור / API / CORS"
+        }
+      };
+    }
   }
 
   async function loadAllLive() {
