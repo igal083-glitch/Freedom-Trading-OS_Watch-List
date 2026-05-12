@@ -331,18 +331,22 @@ export default function App() {
       const response = await fetch(`https://finnhub.io/api/v1/quote?symbol=${row.ticker}&token=${key}`);
       const quote = await response.json();
 
-     return {
-  ...row,
-  analysis: enrichAnalysis({
-    ...emptyAnalysis(),
-    dataQuality: "ERROR",
-    dataMessage: quote.error,
-    why: `Quote error: ${quote.error}`,
-  }, row),
-};
-      }
+    if (quote.error) {
+  setLastError(`שגיאת Finnhub: ${quote.error}`);
 
-     return {
+  return {
+    ...row,
+    analysis: enrichAnalysis({
+      ...emptyAnalysis(),
+      dataQuality: "ERROR",
+      dataMessage: quote.error,
+      why: `Quote error: ${quote.error}`,
+    }, row),
+  };
+}
+if (!quote || !quote.c || quote.c === 0) {
+ setLastError(`לא התקבל מחיר חי עבור ${row.ticker}`);
+  return {
   ...row,
   analysis: enrichAnalysis({
     ...emptyAnalysis(),
