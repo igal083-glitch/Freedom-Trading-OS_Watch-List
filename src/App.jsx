@@ -667,6 +667,10 @@ function Drawer({ row, updateRow }) {
     <tr className="bg-[#07111f] text-white">
       <td colSpan={15} className="p-5">
         <div className="grid gap-4 xl:grid-cols-3">
+        <Info
+  label="DATA HEALTH"
+  value={`${analysis.dataQuality} | ${analysis.dataMessage}`}
+/>
           <Info label="Daily" value={analysis.daily} />
           <Info label="Weekly" value={analysis.weekly} />
           <Info label="Volume" value={`${analysis.volumeSignal} | ${safeNum(analysis.volumeRatio, 2)}x`} />
