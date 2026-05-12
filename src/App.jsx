@@ -179,6 +179,8 @@ function buildQuoteAnalysis(quote, row) {
     weekly: "Quote only — candles are optional",
     volumeSignal: "Quote Only",
     volumeRatio: 0,
+   dataQuality: "QUOTE",
+dataMessage: "Live quote loaded",
     why,
   }, row);
 }
