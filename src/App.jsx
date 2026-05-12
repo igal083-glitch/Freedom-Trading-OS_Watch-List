@@ -208,7 +208,8 @@ function pressureClass(value) {
 }
 
 function rankClass(value) {
-function dataQualityClass(value) {
+}
+  function dataQualityClass(value) {
   if (value === "LIVE") {
     return "border-emerald-500/40 bg-emerald-500/15 text-emerald-300";
   }
