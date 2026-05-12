@@ -323,9 +323,14 @@ export default function App() {
 };
       }
 
-      if (!quote || !quote.c || quote.c === 0) {
-        setLastError(`לא התקבל מחיר חי עבור ${row.ticker}`);
-        return { ...row, analysis: enrichAnalysis(emptyAnalysis(), row) };
+     return {
+  ...row,
+  analysis: enrichAnalysis({
+    ...emptyAnalysis(),
+    dataQuality: "EMPTY",
+    dataMessage: "No live price",
+  }, row),
+};
       }
 
       return { ...row, analysis: buildQuoteAnalysis(quote, row), alertNotified: false, lastLoadedAt: new Date().toISOString() };
