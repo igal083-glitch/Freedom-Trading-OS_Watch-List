@@ -982,6 +982,145 @@ function DeleteModal({
   );
 }
 
+
+            <div key={row.ticker} className="flex items
+function Archive({ rows, updateRow }) {
+  return (
+    <section className={`${ui.card} p-5`}>
+      <h2 className="text-2xl font-black text-white">
+        מסך ארכיון
+      </h2>
+
+      {!rows.length ? (
+        <div className="mt-4 rounded-2xl border border-slate-700 bg-slate-900/40 p-4 text-slate-400">
+          אין מניות בארכיון.
+        </div>
+      ) : (
+        <div className="mt-4 space-y-3">
+          {rows.map((row) => (
+            <div
+              key={row.ticker}
+              className="flex items-center justify-between rounded-2xl border border-slate-700 bg-slate-900/40 p-4"
+            >
+              <div>
+                <div className="text-xl font-black text-white">
+                  {row.ticker}
+                </div>
+
+                <div className="text-sm text-slate-400">
+                  {row.archiveReason || "ללא סיבה"}
+                </div>
+              </div>
+
+              <Button
+                onClick={() =>
+                  updateRow(row.ticker, {
+                    archived: false,
+                  })
+                }
+                className="border border-emerald-500/40 text-emerald-300"
+              >
+                החזר
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function ManualDrawer({ setManualOpen }) {
+  return (
+    <div className="fixed inset-0 z-50 bg-black/70 p-4">
+      <div className="mr-auto h-full w-full max-w-4xl overflow-y-auto rounded-3xl border border-white/20 bg-[#0B1220] p-6">
+
+        <div className="mb-5 flex items-center justify-between">
+          <h2 className="text-3xl font-black text-white">
+            📘 הוראות יצרן
+          </h2>
+
+          <Button
+            onClick={() => setManualOpen(false)}
+            className={ui.accent}
+          >
+            סגור
+          </Button>
+        </div>
+
+        <div className="space-y-4 text-sm">
+          <Info
+            label="Campaign Rank"
+            value="A/A+ = חזקה | B = טובה | C = מוקדם | D = חלש"
+          />
+
+          <Info
+            label="Pressure Build"
+            value="מודד לחץ לפני תנועה."
+          />
+
+          <Info
+            label="Add Zone"
+            value="אזור אפשרי להוספה."
+          />
+
+          <Info
+            label="Quote Only"
+            value="המערכת יכולה לעבוד גם בלי candles."
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DeleteModal({
+  ticker,
+  setTicker,
+  setRows,
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+      <div className={`${ui.card} w-full max-w-md p-6`}>
+
+        <h3 className="text-2xl font-black text-white">
+          מחיקת מניה
+        </h3>
+
+        <p className="mt-3 text-slate-400">
+          האם למחוק את {ticker}?
+        </p>
+
+        <div className="mt-5 flex gap-3">
+
+          <Button
+            onClick={() => {
+              setRows((prev) =>
+                prev.filter(
+                  (r) => r.ticker !== ticker
+                )
+              );
+
+              setTicker(null);
+            }}
+            className="border border-red-500/40 bg-red-500/10 text-red-300"
+          >
+            מחק
+          </Button>
+
+          <Button
+            onClick={() => setTicker(null)}
+            className={ui.navIdle}
+          >
+            ביטול
+          </Button>
+
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ArchiveModal({
   archiveModal,
   setArchiveModal,
@@ -1049,6 +1188,3 @@ function ArchiveModal({
     </div>
   );
 }
-        <div className="mt-4 space-y-3">
-          {rows.map((row) => (
-            <div key={row.ticker} className="flex items
