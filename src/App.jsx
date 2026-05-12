@@ -48,20 +48,30 @@ function emptyAnalysis() {
     aiStatus: "WATCH",
     price: null,
     change1: 0,
+
     structure: "אין מספיק נתונים לניתוח",
     daily: "—",
     weekly: "—",
+
     volumeSignal: "Quote Only",
     volumeRatio: 0,
+
     pressureBuild: "WAIT",
     pressureScore: 0,
+
     wyckoffPhase: "Needs Data",
+
     addZone: "—",
     invalidation: "—",
+
     campaignRank: "D",
     campaignScore: 0,
+
     decision: "Load Data",
     why: "צריך לטעון דאטה חי",
+
+    dataQuality: "EMPTY",
+    dataMessage: "No market data",
   };
 }
 
