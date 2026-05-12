@@ -607,6 +607,15 @@ function WatchTable(props) {
                     <td className="p-4"><button onClick={(event) => { event.stopPropagation(); openChart(row.ticker); }} className="text-lg font-black text-blue-500 hover:underline">↗ {row.ticker}</button></td>
                     <td className="p-4 text-lg font-black">{safeNum(analysis.price)}</td>
                     <td className={`p-4 text-lg font-black ${Number(analysis.change1) >= 0 ? "text-emerald-400" : "text-red-400"}`}>{safeNum(analysis.change1, 1)}%</td>
+                   <td className="p-4">
+  <span
+    className={`rounded-xl border px-4 py-2 font-black ${dataQualityClass(
+      analysis.dataQuality
+    )}`}
+  >
+    {analysis.dataQuality}
+  </span>
+</td>
                     <td className="p-4"><span className={`rounded-xl border px-3 py-2 font-black ${label.cls}`}>{row.priority}</span></td>
                     <td className="p-4"><span className={`rounded-xl border px-4 py-2 font-black ${rankClass(analysis.campaignRank)}`}>{analysis.campaignRank}</span></td>
                     <td className="max-w-[300px] p-4 font-bold">{analysis.structure}</td>
