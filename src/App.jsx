@@ -848,13 +848,207 @@ function Guide() {
 function Archive({ rows, updateRow }) {
   return (
     <section className={`${ui.card} p-5`}>
-      <h2 className="text-2xl font-black text-white">מסך ארכיון</h2>
+      <h2 className="text-2xl font-black text-white">
+        מסך ארכיון
+      </h2>
 
       {!rows.length ? (
         <div className="mt-4 rounded-2xl border border-slate-700 bg-slate-900/40 p-4 text-slate-400">
           אין מניות בארכיון.
         </div>
       ) : (
+        <div className="mt-4 space-y-3">
+          {rows.map((row) => (
+            <div
+              key={row.ticker}
+              className="flex items-center justify-between rounded-2xl border border-slate-700 bg-slate-900/40 p-4"
+            >
+              <div>
+                <div className="text-xl font-black text-white">
+                  {row.ticker}
+                </div>
+
+                <div className="text-sm text-slate-400">
+                  {row.archiveReason || "ללא סיבה"}
+                </div>
+              </div>
+
+              <Button
+                onClick={() =>
+                  updateRow(row.ticker, {
+                    archived: false,
+                  })
+                }
+                className="border border-emerald-500/40 text-emerald-300"
+              >
+                החזר
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function ManualDrawer({ setManualOpen }) {
+  return (
+    <div className="fixed inset-0 z-50 bg-black/70 p-4">
+      <div className="mr-auto h-full w-full max-w-4xl overflow-y-auto rounded-3xl border border-white/20 bg-[#0B1220] p-6">
+
+        <div className="mb-5 flex items-center justify-between">
+          <h2 className="text-3xl font-black text-white">
+            📘 הוראות יצרן
+          </h2>
+
+          <Button
+            onClick={() => setManualOpen(false)}
+            className={ui.accent}
+          >
+            סגור
+          </Button>
+        </div>
+
+        <div className="space-y-4 text-sm">
+          <Info
+            label="Campaign Rank"
+            value="A/A+ = חזקה ומעניינת | B = מעקב טוב | C = מוקדם | D = חלש"
+          />
+
+          <Info
+            label="Pressure Build"
+            value="מודד אם נבנה לחץ לפני תנועה. STRONG / BUILDING עדיפים."
+          />
+
+          <Info
+            label="Add Zone"
+            value="אזור תיאורטי לבדיקה להוספה. לא כניסה אוטומטית."
+          />
+
+          <Info
+            label="Quote Only"
+            value="אם Finnhub חוסם candles, המערכת תמשיך לעבוד עם מחיר חי בלבד."
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DeleteModal({
+  ticker,
+  setTicker,
+  setRows,
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+      <div className={`${ui.card} w-full max-w-md p-6`}>
+
+        <h3 className="text-2xl font-black text-white">
+          מחיקת מניה
+        </h3>
+
+        <p className="mt-3 text-slate-400">
+          האם למחוק את {ticker}?
+        </p>
+
+        <div className="mt-5 flex gap-3">
+
+          <Button
+            onClick={() => {
+              setRows((prev) =>
+                prev.filter(
+                  (r) => r.ticker !== ticker
+                )
+              );
+
+              setTicker(null);
+            }}
+            className="border border-red-500/40 bg-red-500/10 text-red-300"
+          >
+            מחק
+          </Button>
+
+          <Button
+            onClick={() => setTicker(null)}
+            className={ui.navIdle}
+          >
+            ביטול
+          </Button>
+
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ArchiveModal({
+  archiveModal,
+  setArchiveModal,
+  updateRow,
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+      <div className={`${ui.card} w-full max-w-lg p-6`}>
+
+        <h3 className="text-2xl font-black text-white">
+          העבר לארכיון
+        </h3>
+
+        <textarea
+          value={archiveModal.reason}
+          onChange={(e) =>
+            setArchiveModal((prev) => ({
+              ...prev,
+              reason: e.target.value,
+            }))
+          }
+          placeholder="סיבה להעברה לארכיון"
+          className={`${ui.input} mt-4 min-h-[120px] w-full`}
+        />
+
+        <div className="mt-5 flex gap-3">
+
+          <Button
+            onClick={() => {
+              updateRow(
+                archiveModal.ticker,
+                {
+                  archived: true,
+                  archiveReason:
+                    archiveModal.reason,
+                }
+              );
+
+              setArchiveModal({
+                open: false,
+                ticker: "",
+                reason: "",
+              });
+            }}
+            className="border border-yellow-500/40 bg-yellow-500/10 text-yellow-300"
+          >
+            העבר
+          </Button>
+
+          <Button
+            onClick={() =>
+              setArchiveModal({
+                open: false,
+                ticker: "",
+                reason: "",
+              })
+            }
+            className={ui.navIdle}
+          >
+            ביטול
+          </Button>
+
+        </div>
+      </div>
+    </div>
+  );
+}
         <div className="mt-4 space-y-3">
           {rows.map((row) => (
             <div key={row.ticker} className="flex items
