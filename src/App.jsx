@@ -448,42 +448,70 @@ export default function App() {
       const now = Math.floor(Date.now() / 1000);
       const dayFrom = now - 60 * 60 * 24 * 170;
       const weekFrom = now - 60 * 60 * 24 * 900;
-      const [quoteRes, dailyRes, weeklyRes] = await Promise.all([
-        fetch(`https://finnhub.io/api/v1/quote?symbol=${row.ticker}&token=${key}`),
-        fetch(`https://finnhub.io/api/v1/stock/candle?symbol=${row.ticker}&resolution=D&from=${dayFrom}&to=${now}&token=${key}`),
-        fetch(`https://finnhub.io/api/v1/stock/candle?symbol=${row.ticker}&resolution=W&from=${weekFrom}&to=${now}&token=${key}`),
-      ]);
-      const quote = await quoteRes.json();
-      const dailyJson = await dailyRes.json();
-      const weeklyJson = await weeklyRes.json();
 
-      if (quote.error || dailyJson.error || weeklyJson.error) {
-        const err = quote.error || dailyJson.error || weeklyJson.error;
-        setLastError(`שגיאת Finnhub: ${err}`);
-        return { ...row, analysis: enrichAnalysis({ ...emptyAnalysis(), why: `API error: ${err}` }, row) };
+      const quoteRes = await fetch(`https://finnhub.io/api/v1/quote?symbol=${row.ticker}&token=${key}`);
+      const quote = await quoteRes.json();
+
+      if (quote.error) {
+        setLastError(`שגיאת Finnhub Quote: ${quote.error}`);
+        return { ...row, analysis: enrichAnalysis({ ...emptyAnalysis(), why: `Quote error: ${quote.error}` }, row) };
       }
 
-      const daily = analyzeCandles(candlesFromFinnhub(dailyJson));
-      const weekly = analyzeCandles(candlesFromFinnhub(weeklyJson));
+      if (!quote || !quote.c || quote.c === 0) {
+        setLastError(`לא התקבל מחיר חי עבור ${row.ticker}`);
+        return { ...row, analysis: enrichAnalysis(emptyAnalysis(), row) };
+      }
+
+      const price = Number(quote.c);
+      const prev = Number(quote.pc) || price;
+      const change1 = prev ? ((price - prev) / prev) * 100 : 0;
+      const quoteBase = {
+        ...emptyAnalysis(),
+        setup: change1 > 3 ? "Breakout" : change1 < -3 ? "Breakdown" : "Live Quote",
+        aiStatus: change1 < -3 ? "AVOID" : change1 > 3 ? "READY" : "WATCH",
+        score: change1 > 3 ? 68 : change1 < -3 ? 25 : 50,
+        price,
+        change1,
+        high: Number(quote.h) || price,
+        low: Number(quote.l) || price,
+        structure: `Quote Live | H ${safeNum(quote.h)} | L ${safeNum(quote.l)} | PC ${safeNum(quote.pc)}`,
+        daily: "Quote only — Candles blocked/unavailable",
+        weekly: "Quote only — Weekly candles blocked/unavailable",
+        volumeSignal: "Quote Only",
+        volumeRatio: 0,
+        why: "Quote live loaded. Candle data is optional and may be blocked by Finnhub plan.",
+      };
+
+      let daily = null;
+      let weekly = null;
+      let candleBlocked = false;
+
+      try {
+        const [dailyRes, weeklyRes] = await Promise.all([
+          fetch(`https://finnhub.io/api/v1/stock/candle?symbol=${row.ticker}&resolution=D&from=${dayFrom}&to=${now}&token=${key}`),
+          fetch(`https://finnhub.io/api/v1/stock/candle?symbol=${row.ticker}&resolution=W&from=${weekFrom}&to=${now}&token=${key}`),
+        ]);
+
+        const dailyJson = await dailyRes.json();
+        const weeklyJson = await weeklyRes.json();
+
+        if (dailyJson.error || weeklyJson.error) {
+          candleBlocked = true;
+        } else {
+          daily = analyzeCandles(candlesFromFinnhub(dailyJson));
+          weekly = analyzeCandles(candlesFromFinnhub(weeklyJson));
+        }
+      } catch {
+        candleBlocked = true;
+      }
 
       if (!daily) {
-        if (!quote || !quote.c) return { ...row, analysis: enrichAnalysis(emptyAnalysis(), row) };
-        const price = quote.c;
-        const prev = quote.pc || price;
-        const change1 = prev ? ((price - prev) / prev) * 100 : 0;
+        const reason = candleBlocked ? "Candles blocked by Finnhub plan — using Quote only" : "Candles unavailable — using Quote only";
         return {
           ...row,
-          analysis: enrichAnalysis(
-            {
-              ...emptyAnalysis("Quote only — candles unavailable"),
-              setup: change1 > 3 ? "Breakout" : change1 < -3 ? "Breakdown" : "Live Quote",
-              aiStatus: change1 < -3 ? "AVOID" : change1 > 3 ? "READY" : "WATCH",
-              price,
-              change1,
-              structure: `Quote Only | H ${safeNum(quote.h)} | L ${safeNum(quote.l)}`,
-            },
-            row,
-          ),
+          analysis: enrichAnalysis({ ...quoteBase, why: `${quoteBase.why} ${reason}` }, row),
+          alertNotified: false,
+          lastLoadedAt: new Date().toISOString(),
         };
       }
 
@@ -504,7 +532,7 @@ export default function App() {
 
       return { ...row, analysis: enrichAnalysis(base, row), alertNotified: false, lastLoadedAt: new Date().toISOString() };
     } catch (e) {
-      setLastError("טעינת דאטה נכשלה — בדוק API / חיבור / מגבלת Finnhub");
+      setLastError("טעינת Quote נכשלה — בדוק API / חיבור / מגבלת Finnhub");
       return { ...row, analysis: enrichAnalysis(emptyAnalysis(), row) };
     }
   }
@@ -556,7 +584,7 @@ export default function App() {
           `Wyckoff: ${row.analysis.wyckoffPhase}`,
           `Rank: ${row.analysis.campaignRank}`,
           `Price: ${safeNum(row.analysis.price)}`,
-        ].join("\n");
+        ].join(String.fromCharCode(10));
         sendTelegram(message);
       }
     });
@@ -791,10 +819,24 @@ function Guide() {
       <h2 className="mb-4 text-xl font-black text-cyan-300">מדריך זיהוי Setup + Campaign</h2>
       <div className="overflow-x-auto">
         <table className="w-full min-w-[900px] text-right text-sm">
-          <thead className="border-b border-slate-800 text-slate-400"><tr><th className="p-3">מצב</th><th className="p-3">מה לבדוק</th><th className="p-3">פעולה</th></tr></thead>
+          <thead className="border-b border-slate-800 text-slate-400">
+            <tr>
+              <th className="p-3">מצב</th>
+              <th className="p-3">מה לבדוק</th>
+              <th className="p-3">פעולה</th>
+            </tr>
+          </thead>
           <tbody>
             {playbook.map(([mode, check, action]) => (
-              <tr key={mode} className="border-b border-slate-800"><td className="p-3"><span className={`rounded-lg border px-3 py-1 font-black ${setupClass(mode)}`}>{mode}</span></td><td className="p-3 text-white">{check}</td><td className="p-3 text-cyan-300">{action}</td></tr>
+              <tr key={mode} className="border-b border-slate-800">
+                <td className="p-3">
+                  <span className={`rounded-lg border px-3 py-1 font-black ${setupClass(mode)}`}>
+                    {mode}
+                  </span>
+                </td>
+                <td className="p-3 text-white">{check}</td>
+                <td className="p-3 font-black text-yellow-300">{action}</td>
+              </tr>
             ))}
           </tbody>
         </table>
@@ -806,32 +848,13 @@ function Guide() {
 function Archive({ rows, updateRow }) {
   return (
     <section className={`${ui.card} p-5`}>
-      <h2 className="text-xl font-black text-white">מסך ארכיון</h2>
-      {rows.length === 0 ? <div className="mt-3 text-slate-400">אין כרגע מניות בארכיון.</div> : rows.map((r) => <div key={r.ticker} className="mt-3 flex items-center justify-between rounded-2xl border border-slate-700 p-3"><b>{r.ticker}</b><Button onClick={() => updateRow(r.ticker, { archived: false })} className="border border-emerald-500/40 text-emerald-300">החזר</Button></div>)}
-    </section>
-  );
-}
+      <h2 className="text-2xl font-black text-white">מסך ארכיון</h2>
 
-function ManualDrawer({ setManualOpen }) {
-  return (
-    <div className="fixed inset-0 z-50 bg-black/70 p-4">
-      <div className="ml-auto h-full w-full max-w-3xl overflow-y-auto rounded-3xl border border-white/25 bg-[#0B1220] p-5">
-        <div className="flex items-center justify-between border-b border-slate-800 pb-4"><h2 className="text-2xl font-black text-white">📘 הוראות יצרן</h2><Button onClick={() => setManualOpen(false)} className={ui.accent}>סגור</Button></div>
-        <div className="mt-4 space-y-3 text-sm leading-7 text-slate-300">
-          <p><b className="text-white">Campaign Rank:</b> דירוג התאמה לקמפיין שלך.</p>
-          <p><b className="text-white">Pressure Build:</b> האם נבנה לחץ לפני תנועה.</p>
-          <p><b className="text-white">Wyckoff:</b> תרגום מבני לשלב במחזור.</p>
-          <p><b className="text-white">Add Zone:</b> אזור בדיקה להוספה, לא פקודת קנייה.</p>
+      {!rows.length ? (
+        <div className="mt-4 rounded-2xl border border-slate-700 bg-slate-900/40 p-4 text-slate-400">
+          אין מניות בארכיון.
         </div>
-      </div>
-    </div>
-  );
-}
-
-function DeleteModal({ ticker, setTicker, setRows }) {
-  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"><div className={`${ui.card} w-full max-w-md p-6`}><h3 className="text-xl font-black text-white">מחיקת מניה</h3><p className="mt-2 text-slate-400">למחוק את {ticker}?</p><div className="mt-5 flex gap-3"><Button onClick={() => { setRows((prev) => prev.filter((r) => r.ticker !== ticker)); setTicker(null); }} className="border border-red-500/40 text-red-300">מחק</Button><Button onClick={() => setTicker(null)} className={ui.navIdle}>ביטול</Button></div></div></div>;
-}
-
-function ArchiveModal({ archiveModal, setArchiveModal, updateRow }) {
-  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"><div className={`${ui.card} w-full max-w-lg p-6`}><h3 className="text-xl font-black text-white">העבר לארכיון</h3><textarea value={archiveModal.reason} onChange={(e) => setArchiveModal((p) => ({ ...p, reason: e.target.value }))} placeholder="סיבה — אופציונלי" className={`${ui.input} mt-4 min-h-[110px] w-full`} /><div className="mt-5 flex gap-3"><Button onClick={() => { updateRow(archiveModal.ticker, { archived: true, archiveReason: archiveModal.reason || "" }); setArchiveModal({ open: false, ticker: "", reason: "" }); }} className="border border-yellow-500/40 text-yellow-300">העבר</Button><Button onClick={() => setArchiveModal({ open: false, ticker: "", reason: "" })} className={ui.navIdle}>ביטול</Button></div></div></div>;
-}
+      ) : (
+        <div className="mt-4 space-y-3">
+          {rows.map((row) => (
+            <div key={row.ticker} className="flex items
