@@ -594,7 +594,7 @@ function WatchTable(props) {
       <div className="scroll-white overflow-x-auto">
         <table className="w-full min-w-[1850px] border-collapse text-right text-sm">
           <thead className={`${table.head} text-sm font-black uppercase`}>
-            <tr>{["טיקר", "מחיר", "%1D", "Priority", "Campaign Rank", "Structure", "Pressure Build", "Wyckoff", "Add Zone", "דירוג", "סטטוס", "AI", "סטאפ", "אלרט", "פעולות"].map((header) => <th key={header} className="p-4">{header}</th>)}</tr>
+            <tr>{["טיקר", "מחיר", "%1D", "DATA", "Priority", "Campaign Rank", "Structure", "Pressure Build", "Wyckoff", "Add Zone", "דירוג", "סטטוס", "AI", "סטאפ", "אלרט", "פעולות"].map((header) => <th key={header} className="p-4">{header}</th>)}</tr>
           </thead>
           <tbody>
             {rows.map((row) => {
