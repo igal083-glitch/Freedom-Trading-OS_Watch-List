@@ -623,7 +623,11 @@ function WatchTable(props) {
               const isOpen = drawerTicker === row.ticker;
               return (
                 <React.Fragment key={row.ticker}>
-                  <tr onClick={() => setDrawerTicker(isOpen ? "" : row.ticker)} className={`cursor-pointer border-t ${table.row}`}>
+                  <tr onClick={() => setDrawerTicker(isOpen ? "" : row.ticker)} className={`cursor-pointer border-t ${table.row} ${
+  row.isReadyToTrade
+    ? "bg-emerald-500/10 shadow-[inset_0_0_0_1px_rgba(16,185,129,0.35)]"
+    : ""
+}`}
                     <td className="p-4"><button onClick={(event) => { event.stopPropagation(); openChart(row.ticker); }} className="text-lg font-black text-blue-500 hover:underline">↗ {row.ticker}</button></td>
                     <td className="p-4 text-lg font-black">{safeNum(analysis.price)}</td>
                     <td className={`p-4 text-lg font-black ${Number(analysis.change1) >= 0 ? "text-emerald-400" : "text-red-400"}`}>{safeNum(analysis.change1, 1)}%</td>
