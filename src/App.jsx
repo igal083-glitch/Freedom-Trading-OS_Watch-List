@@ -48,28 +48,20 @@ function emptyAnalysis() {
     aiStatus: "WATCH",
     price: null,
     change1: 0,
-
     structure: "אין מספיק נתונים לניתוח",
     daily: "—",
     weekly: "—",
-
     volumeSignal: "Quote Only",
     volumeRatio: 0,
-
     pressureBuild: "WAIT",
     pressureScore: 0,
-
     wyckoffPhase: "Needs Data",
-
     addZone: "—",
     invalidation: "—",
-
     campaignRank: "D",
     campaignScore: 0,
-
     decision: "Load Data",
     why: "צריך לטעון דאטה חי",
-
     dataQuality: "EMPTY",
     dataMessage: "No market data",
   };
@@ -87,6 +79,10 @@ function enrichAnalysis(base, row = {}) {
   if (a.setup === "Breakdown") pressureScore -= 35;
   if (Math.abs(Number(a.change1) || 0) <= 1.2) pressureScore += 10;
   if (rating >= 4) pressureScore += 8;
+
+  if (a.dataQuality === "ERROR" || a.dataQuality === "EMPTY") pressureScore -= 20;
+  if (a.dataQuality === "LIMITED") pressureScore -= 8;
+
   pressureScore = clamp(pressureScore);
 
   let pressureBuild = "WAIT";
@@ -122,6 +118,10 @@ function enrichAnalysis(base, row = {}) {
   campaignScore += a.setup === "Base" ? 22 : a.setup === "Breakout" ? 18 : a.setup === "Spike" ? 10 : a.setup === "Breakdown" ? -30 : 5;
   campaignScore += Math.round(pressureScore * 0.32);
   campaignScore += rating * 7;
+
+  if (a.dataQuality === "ERROR" || a.dataQuality === "EMPTY") campaignScore -= 30;
+  if (a.dataQuality === "LIMITED") campaignScore -= 12;
+
   campaignScore = clamp(campaignScore);
 
   let campaignRank = "D";
@@ -129,6 +129,9 @@ function enrichAnalysis(base, row = {}) {
   else if (campaignScore >= 72) campaignRank = "A";
   else if (campaignScore >= 58) campaignRank = "B";
   else if (campaignScore >= 40) campaignRank = "C";
+
+  if (a.dataQuality === "ERROR" || a.dataQuality === "EMPTY") campaignRank = "D";
+  if (a.dataQuality === "LIMITED" && (campaignRank === "A+" || campaignRank === "A")) campaignRank = "B";
 
   const decision = campaignRank === "A+" || campaignRank === "A" ? "CAMPAIGN READY" : campaignRank === "B" ? "WATCH FOR ADD" : campaignRank === "C" ? "WAIT" : "AVOID / NO ADD";
   return { ...a, pressureScore, pressureBuild, wyckoffPhase, addZone, invalidation, campaignScore, campaignRank, decision };
@@ -179,8 +182,8 @@ function buildQuoteAnalysis(quote, row) {
     weekly: "Quote only — candles are optional",
     volumeSignal: "Quote Only",
     volumeRatio: 0,
-   dataQuality: "QUOTE",
-dataMessage: "Live quote loaded",
+    dataQuality: "QUOTE",
+    dataMessage: "Live quote loaded",
     why,
   }, row);
 }
@@ -208,48 +211,17 @@ function pressureClass(value) {
 }
 
 function rankClass(value) {
-}
-  function dataQualityClass(value) {
-  if (value === "LIVE") {
-    return "border-emerald-500/40 bg-emerald-500/15 text-emerald-300";
-  }
-
-  if (value === "QUOTE") {
-    return "border-yellow-500/40 bg-yellow-500/15 text-yellow-300";
-  }
-
-  if (value === "LIMITED") {
-    return "border-orange-500/40 bg-orange-500/15 text-orange-300";
-  }
-
-  if (value === "ERROR") {
-    return "border-red-500/40 bg-red-500/15 text-red-300";
-  }
-
-  return "border-slate-500/40 bg-slate-500/15 text-slate-300";
-}
   if (value === "A+" || value === "A") return "border-emerald-400/50 bg-emerald-500/20 text-emerald-200";
   if (value === "B") return "border-yellow-400/50 bg-yellow-500/20 text-yellow-200";
   if (value === "C") return "border-blue-400/50 bg-blue-500/20 text-blue-200";
   return "border-red-400/50 bg-red-500/20 text-red-200";
 }
+
 function dataQualityClass(value) {
-  if (value === "LIVE") {
-    return "border-emerald-500/40 bg-emerald-500/15 text-emerald-300";
-  }
-
-  if (value === "QUOTE") {
-    return "border-yellow-500/40 bg-yellow-500/15 text-yellow-300";
-  }
-
-  if (value === "LIMITED") {
-    return "border-orange-500/40 bg-orange-500/15 text-orange-300";
-  }
-
-  if (value === "ERROR") {
-    return "border-red-500/40 bg-red-500/15 text-red-300";
-  }
-
+  if (value === "LIVE") return "border-emerald-500/40 bg-emerald-500/15 text-emerald-300";
+  if (value === "QUOTE") return "border-yellow-500/40 bg-yellow-500/15 text-yellow-300";
+  if (value === "LIMITED") return "border-orange-500/40 bg-orange-500/15 text-orange-300";
+  if (value === "ERROR") return "border-red-500/40 bg-red-500/15 text-red-300";
   return "border-slate-500/40 bg-slate-500/15 text-slate-300";
 }
 
@@ -276,6 +248,10 @@ function priorityScore(row) {
   score += a.aiStatus === "READY" ? 20 : a.aiStatus === "WATCH" ? 10 : -15;
   score += a.campaignRank === "A+" ? 16 : a.campaignRank === "A" ? 12 : a.campaignRank === "B" ? 8 : 0;
   score += Math.round((a.pressureScore || 0) / 12);
+
+  if (a.dataQuality === "ERROR" || a.dataQuality === "EMPTY") score -= 35;
+  if (a.dataQuality === "LIMITED") score -= 15;
+
   return clamp(score);
 }
 
@@ -344,42 +320,61 @@ export default function App() {
     const key = (viteKey || apiKey || "").trim();
     if (!key) {
       setLastError("חסר Finnhub API Key");
-      return row;
+      return {
+        ...row,
+        analysis: enrichAnalysis({
+          ...emptyAnalysis(),
+          dataQuality: "ERROR",
+          dataMessage: "Missing Finnhub API Key",
+          why: "Missing Finnhub API Key",
+        }, row),
+      };
     }
 
     try {
       const response = await fetch(`https://finnhub.io/api/v1/quote?symbol=${row.ticker}&token=${key}`);
       const quote = await response.json();
 
-    if (quote.error) {
-  setLastError(`שגיאת Finnhub: ${quote.error}`);
+      if (quote?.error) {
+        setLastError(`שגיאת Finnhub: ${quote.error}`);
 
-  return {
-    ...row,
-    analysis: enrichAnalysis({
-      ...emptyAnalysis(),
-      dataQuality: "ERROR",
-      dataMessage: quote.error,
-      why: `Quote error: ${quote.error}`,
-    }, row),
-  };
-}
-if (!quote || !quote.c || quote.c === 0) {
- setLastError(`לא התקבל מחיר חי עבור ${row.ticker}`);
-  return {
-  ...row,
-  analysis: enrichAnalysis({
-    ...emptyAnalysis(),
-    dataQuality: "EMPTY",
-    dataMessage: "No live price",
-  }, row),
-};
+        return {
+          ...row,
+          analysis: enrichAnalysis({
+            ...emptyAnalysis(),
+            dataQuality: "ERROR",
+            dataMessage: quote.error,
+            why: `Quote error: ${quote.error}`,
+          }, row),
+        };
+      }
+
+      if (!quote || !quote.c || quote.c === 0) {
+        setLastError(`לא התקבל מחיר חי עבור ${row.ticker}`);
+
+        return {
+          ...row,
+          analysis: enrichAnalysis({
+            ...emptyAnalysis(),
+            dataQuality: "EMPTY",
+            dataMessage: "No live price",
+            why: "No live price returned from Finnhub",
+          }, row),
+        };
       }
 
       return { ...row, analysis: buildQuoteAnalysis(quote, row), alertNotified: false, lastLoadedAt: new Date().toISOString() };
-    } catch {
+    } catch (error) {
       setLastError("טעינת Quote נכשלה — בדוק API / חיבור");
-      return { ...row, analysis: enrichAnalysis(emptyAnalysis(), row) };
+      return {
+        ...row,
+        analysis: enrichAnalysis({
+          ...emptyAnalysis(),
+          dataQuality: "ERROR",
+          dataMessage: error?.message || "Fetch failed",
+          why: "Quote fetch failed",
+        }, row),
+      };
     }
   }
 
@@ -479,7 +474,7 @@ function Header({ counts, readyCount, campaignACount, pressureCount, lastRefresh
         <div>
           <div className="text-xs font-black tracking-[0.35em] text-cyan-300">FREEDOM TRADING OS</div>
           <h1 className="mt-2 text-3xl font-black text-white lg:text-4xl">Campaign Intelligence — Watch List</h1>
-          <p className="mt-2 text-sm text-slate-400">Quote Live / Pressure / Wyckoff / Add Zone / Rank</p>
+          <p className="mt-2 text-sm text-slate-400">Quote Live / Data Health / Pressure / Wyckoff / Add Zone / Rank</p>
           <div className="mt-4 flex flex-wrap gap-2">
             <span className={`rounded-full border px-3 py-1 text-xs font-black ${apiReady ? "border-emerald-500/40 bg-emerald-500/15 text-emerald-300" : "border-red-500/40 bg-red-500/15 text-red-300"}`}>{apiReady ? "🟢 API מוכן" : "🔴 חסר API"}</span>
             <span className="rounded-full border border-slate-700 bg-slate-900 px-3 py-1 text-xs font-black text-slate-300">עדכון אחרון: {lastRefresh || "—"}</span>
@@ -562,6 +557,7 @@ function PriorityPanel({ rows }) {
                 <div>Rank: <b>{row.analysis.campaignRank}</b></div>
                 <div>Pressure: <b>{row.analysis.pressureBuild}</b></div>
                 <div>Wyckoff: <b>{row.analysis.wyckoffPhase}</b></div>
+                <div>Data: <b>{row.analysis.dataQuality}</b></div>
                 <div>Priority: <b>{row.priority}</b></div>
               </div>
             </div>
@@ -616,7 +612,7 @@ function WatchTable(props) {
       </div>
 
       <div className="scroll-white overflow-x-auto">
-        <table className="w-full min-w-[1850px] border-collapse text-right text-sm">
+        <table className="w-full min-w-[1950px] border-collapse text-right text-sm">
           <thead className={`${table.head} text-sm font-black uppercase`}>
             <tr>{["טיקר", "מחיר", "%1D", "DATA", "Priority", "Campaign Rank", "Structure", "Pressure Build", "Wyckoff", "Add Zone", "דירוג", "סטטוס", "AI", "סטאפ", "אלרט", "פעולות"].map((header) => <th key={header} className="p-4">{header}</th>)}</tr>
           </thead>
@@ -631,15 +627,7 @@ function WatchTable(props) {
                     <td className="p-4"><button onClick={(event) => { event.stopPropagation(); openChart(row.ticker); }} className="text-lg font-black text-blue-500 hover:underline">↗ {row.ticker}</button></td>
                     <td className="p-4 text-lg font-black">{safeNum(analysis.price)}</td>
                     <td className={`p-4 text-lg font-black ${Number(analysis.change1) >= 0 ? "text-emerald-400" : "text-red-400"}`}>{safeNum(analysis.change1, 1)}%</td>
-                   <td className="p-4">
-  <span
-    className={`rounded-xl border px-4 py-2 font-black ${dataQualityClass(
-      analysis.dataQuality
-    )}`}
-  >
-    {analysis.dataQuality}
-  </span>
-</td>
+                    <td className="p-4"><span className={`rounded-xl border px-4 py-2 font-black ${dataQualityClass(analysis.dataQuality)}`}>{analysis.dataQuality}</span></td>
                     <td className="p-4"><span className={`rounded-xl border px-3 py-2 font-black ${label.cls}`}>{row.priority}</span></td>
                     <td className="p-4"><span className={`rounded-xl border px-4 py-2 font-black ${rankClass(analysis.campaignRank)}`}>{analysis.campaignRank}</span></td>
                     <td className="max-w-[300px] p-4 font-bold">{analysis.structure}</td>
@@ -689,12 +677,9 @@ function Drawer({ row, updateRow }) {
   const analysis = row.analysis;
   return (
     <tr className="bg-[#07111f] text-white">
-      <td colSpan={15} className="p-5">
+      <td colSpan={16} className="p-5">
         <div className="grid gap-4 xl:grid-cols-3">
-        <Info
-  label="DATA HEALTH"
-  value={`${analysis.dataQuality} | ${analysis.dataMessage}`}
-/>
+          <Info label="DATA HEALTH" value={`${analysis.dataQuality} | ${analysis.dataMessage}`} />
           <Info label="Daily" value={analysis.daily} />
           <Info label="Weekly" value={analysis.weekly} />
           <Info label="Volume" value={`${analysis.volumeSignal} | ${safeNum(analysis.volumeRatio, 2)}x`} />
@@ -780,6 +765,7 @@ function ManualDrawer({ setManualOpen }) {
           <Info label="Campaign Rank" value="A/A+ = חזקה ומעניינת | B = מעקב טוב | C = מוקדם | D = חלש" />
           <Info label="Pressure Build" value="מודד אם נבנה לחץ לפני תנועה. STRONG / BUILDING עדיפים." />
           <Info label="Add Zone" value="אזור תיאורטי לבדיקה להוספה. לא כניסה אוטומטית." />
+          <Info label="Data Health" value="QUOTE = מחיר חי בלבד | ERROR/EMPTY = לא להשתמש בהחלטת מסחר עד תיקון הדאטה." />
           <Info label="Quote Only" value="אם Finnhub חוסם candles, המערכת תמשיך לעבוד עם מחיר חי בלבד." />
         </div>
       </div>
