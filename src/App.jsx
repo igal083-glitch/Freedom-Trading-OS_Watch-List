@@ -233,6 +233,25 @@ function rankClass(value) {
   if (value === "C") return "border-blue-400/50 bg-blue-500/20 text-blue-200";
   return "border-red-400/50 bg-red-500/20 text-red-200";
 }
+function dataQualityClass(value) {
+  if (value === "LIVE") {
+    return "border-emerald-500/40 bg-emerald-500/15 text-emerald-300";
+  }
+
+  if (value === "QUOTE") {
+    return "border-yellow-500/40 bg-yellow-500/15 text-yellow-300";
+  }
+
+  if (value === "LIMITED") {
+    return "border-orange-500/40 bg-orange-500/15 text-orange-300";
+  }
+
+  if (value === "ERROR") {
+    return "border-red-500/40 bg-red-500/15 text-red-300";
+  }
+
+  return "border-slate-500/40 bg-slate-500/15 text-slate-300";
+}
 
 function alertState(row, price) {
   const target = Number(row.alertPrice);
